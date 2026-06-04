@@ -76,4 +76,31 @@ button.secondary { background: rgba(255,255,255,.10); color: var(--racegps-text)
 .status { color: var(--racegps-muted); font-size: 13px; line-height: 1.5; }
 .hot { color: var(--racegps-hot); }
 .neon { color: var(--racegps-neon); }
+
+/* ── Race Lobby ─────────────────────────────────────── */
+.lobby-players { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.lobby-player { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+.lobby-player.ready { border-color: var(--racegps-neon); background: rgba(53,255,182,.08); }
+.player-name { color: var(--racegps-text); font-weight: 600; }
+.player-ready { font-size: 16px; }
+
+/* ── Countdown Overlay ──────────────────────────────── */
+.countdown-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6,7,11,.75); z-index: 10; backdrop-filter: blur(8px); }
+.countdown-number { font-size: 120px; font-weight: 900; color: var(--racegps-neon); text-shadow: 0 0 80px rgba(53,255,182,.6); animation: countPulse .5s ease-out; }
+.countdown-number.go { color: var(--racegps-hot); text-shadow: 0 0 120px rgba(255,55,95,.7); font-size: 140px; }
+@keyframes countPulse { 0% { transform: scale(1.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* ── Race HUD ───────────────────────────────────────── */
+.race-timer { font-size: 36px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--racegps-text); margin: 6px 0; }
+.cp-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.10); margin: 10px 0; overflow: hidden; }
+.cp-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--racegps-neon), #9dffdf); transition: width .3s ease; }
+
+/* ── Results ────────────────────────────────────────── */
+.winner-banner { text-align: center; font-size: 18px; font-weight: 800; color: var(--racegps-gold); padding: 10px; margin-bottom: 10px; border-radius: 10px; background: rgba(255,204,102,.08); border: 1px solid rgba(255,204,102,.2); }
+.result-row { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; background: rgba(255,255,255,.04); }
+.result-row.me { background: rgba(53,255,182,.08); border: 1px solid rgba(53,255,182,.15); }
+.result-pos { font-size: 18px; font-weight: 800; color: var(--racegps-muted); width: 30px; }
+.result-name { flex: 1; font-weight: 600; }
+.result-time { font-weight: 700; color: var(--racegps-neon); font-variant-numeric: tabular-nums; }
+
 @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .panel { min-height: auto; } .map-wrap { min-height: 70vh; } .hud { grid-template-columns: 1fr; } }
