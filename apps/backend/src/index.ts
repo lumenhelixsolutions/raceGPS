@@ -11,7 +11,9 @@ import type {
 import { parseClientMessage } from '@racegps/protocol';
 import {
   createRacerState, validateCheckpoint, allCheckpointsHit, recordGhostTick,
-  createGhostReplay, type Checkpoint, type RacerState,
+  createGhostReplay, createAIDriver, tickAIDriver, generateDefaultRoute,
+  routeToCheckpoints,
+  type Checkpoint, type RacerState, type AIDriver,
 } from '@racegps/race-engine';
 
 const PORT = Number(process.env.RACEGPS_PORT || 8787);
@@ -34,6 +36,8 @@ interface RaceLobbyInternal {
   lobby: RaceLobby;
   checkpoints: Checkpoint[];
   racers: Map<string, RacerState>;
+  aiDrivers: AIDriver[];
+  aiTickInterval?: ReturnType<typeof setInterval>;
   countdownTimer?: ReturnType<typeof setTimeout>;
   raceStartTimer?: ReturnType<typeof setTimeout>;
   raceStartMs: number;
@@ -204,7 +208,7 @@ function handleRaceCreateLobby(ws: WebSocket, state: SocketState, roomId: string
 
   const internal: RaceLobbyInternal = {
     lobby, checkpoints,
-    racers: new Map(), raceStartMs: 0, results: [],
+    racers: new Map(), aiDrivers: [], raceStartMs: 0, results: [],
   };
 
   // Auto-join creator
@@ -213,9 +217,12 @@ function handleRaceCreateLobby(ws: WebSocket, state: SocketState, roomId: string
   internal.racers.set(state.playerId, createRacerState(state.playerId, state.displayName));
   state.lobbyId = lobbyId;
 
+  // Spawn AI opponents
+  spawnAIDrivers(room, internal);
+
   room.lobbies.set(lobbyId, internal);
   send(ws, { type: 'race_lobby_snapshot', lobby });
-  broadcast(room, { type: 'system_message', message: `${state.displayName} created race lobby "${title}".` });
+  broadcast(room, { type: 'system_message', message: `${state.displayName} created race lobby "${title}". ${internal.aiDrivers.length} AI drivers joined.` });
 }
 
 function handleRaceJoinLobby(ws: WebSocket, state: SocketState, roomId: string, lobbyId: string): void {
@@ -308,6 +315,9 @@ function startRace(room: Room, li: RaceLobbyInternal): void {
   broadcast(room, { type: 'race_started', lobbyId: li.lobby.lobbyId, raceStart: li.raceStartMs });
   broadcast(room, { type: 'system_message', message: `Race started! ${li.lobby.players.length} drivers on the grid.` });
   broadcastLobby(room, li);
+
+  // Start AI drivers
+  startAITicks(room, li);
 }
 
 function handleRaceCheckpointHit(ws: WebSocket, state: SocketState, roomId: string, lobbyId: string, checkpointId: string, seq: number): void {
@@ -357,8 +367,10 @@ function handleRaceFinished(ws: WebSocket, state: SocketState, roomId: string, l
 
   broadcast(room, { type: 'race_player_finished', lobbyId, result });
 
-  const totalReal = li.lobby.players.filter(p => p.playerId.startsWith('p_')).length;
-  if (li.results.length >= totalReal) {
+  // Check if all human players have finished
+  const humanPlayers = li.lobby.players.filter(p => p.playerId.startsWith('p_'));
+  const humansFinished = humanPlayers.filter(p => li.results.some(r => r.playerId === p.playerId));
+  if (humansFinished.length >= humanPlayers.length) {
     finishRace(room, li);
   }
 }
@@ -366,6 +378,21 @@ function handleRaceFinished(ws: WebSocket, state: SocketState, roomId: string, l
 function finishRace(room: Room, li: RaceLobbyInternal): void {
   clearLobbyTimers(li);
   li.lobby.state = 'finished';
+
+  // Add unfinished AI drivers as DNF results
+  for (const ai of li.aiDrivers) {
+    if (!ai.finished) {
+      li.results.push({
+        playerId: ai.playerId,
+        displayName: ai.displayName,
+        finishOrder: 999,
+        elapsedMs: ai.elapsedMs,
+        checkpointsHit: ai.currentIndex,
+        totalCheckpoints: li.checkpoints.length,
+        ghost: ai.ghost,
+      });
+    }
+  }
 
   // Sort by elapsedMs then by checkpoints for DNF ordering
   const sorted = [...li.results].sort((a, b) => {
@@ -388,10 +415,78 @@ function finishRace(room: Room, li: RaceLobbyInternal): void {
 function clearLobbyTimers(li: RaceLobbyInternal): void {
   if (li.countdownTimer) { clearTimeout(li.countdownTimer); li.countdownTimer = undefined; }
   if (li.raceStartTimer) { clearTimeout(li.raceStartTimer); li.raceStartTimer = undefined; }
+  if (li.aiTickInterval) { clearInterval(li.aiTickInterval); li.aiTickInterval = undefined; }
 }
 
 function broadcastLobby(room: Room, li: RaceLobbyInternal): void {
   broadcast(room, { type: 'race_lobby_updated', lobby: li.lobby });
+}
+
+// ── AI Driver System ────────────────────────────────────────
+
+const AI_NAMES = ['Blitz', 'Nitro', 'DriftKing', 'Turbo', 'Apex', 'GhostRider', 'Slipstream', 'Overdrive'];
+
+function spawnAIDrivers(room: Room, li: RaceLobbyInternal): void {
+  const count = Math.min(3, 8 - li.lobby.players.length);
+  const route = generateDefaultRoute({ lat: 41.4993, lon: -81.6944 }, li.checkpoints.length + 1);
+
+  for (let i = 0; i < count; i++) {
+    const aiId = `ai_${nanoid(8)}`;
+    const name = AI_NAMES[i % AI_NAMES.length] + (count > 1 ? ` ${i + 1}` : '');
+    const speed = 10 + Math.random() * 4; // 10-14 m/s (~36-50 km/h)
+
+    const ai = createAIDriver(aiId, `🤖 ${name}`, route, speed);
+    li.aiDrivers.push(ai);
+
+    // Add as lobby player
+    const lp: RaceLobbyPlayer = { playerId: aiId, displayName: ai.displayName, ready: true, carIndex: li.lobby.players.length };
+    li.lobby.players.push(lp);
+
+    // Add as room player (so position broadcasts work)
+    const rp: RoomPlayer = { playerId: aiId, displayName: ai.displayName, role: 'driver', mode: 'race', lat: route[0].lat, lon: route[0].lon };
+    room.players.set(aiId, rp);
+  }
+}
+
+function startAITicks(room: Room, li: RaceLobbyInternal): void {
+  if (li.aiDrivers.length === 0) return;
+
+  li.aiTickInterval = setInterval(() => {
+    const now = Date.now();
+    for (const ai of li.aiDrivers) {
+      if (ai.finished) continue;
+      const result = tickAIDriver(ai, 100, ai.routePoints);
+
+      // Broadcast AI position
+      broadcast(room, {
+        type: 'player_position',
+        playerId: ai.playerId,
+        lat: result.point.lat, lon: result.point.lon,
+        heading: 0, speed: ai.baseSpeedMs, seq: Math.floor(ai.elapsedMs / 100),
+      });
+
+      // AI auto-finishes when done
+      if (result.finished) {
+        const aiResult: RaceResult = {
+          playerId: ai.playerId,
+          displayName: ai.displayName,
+          finishOrder: li.results.length + 1,
+          elapsedMs: ai.elapsedMs,
+          checkpointsHit: ai.currentIndex,
+          totalCheckpoints: li.checkpoints.length,
+          ghost: ai.ghost,
+        };
+        li.results.push(aiResult);
+        broadcast(room, { type: 'race_player_finished', lobbyId: li.lobby.lobbyId, result: aiResult });
+      }
+    }
+
+    // Check if race is done
+    const totalRacers = li.lobby.players.length;
+    if (li.results.length >= totalRacers && li.lobby.state === 'racing') {
+      finishRace(room, li);
+    }
+  }, 100);
 }
 
 // ── Room Management ──────────────────────────────────────────

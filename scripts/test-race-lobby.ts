@@ -114,12 +114,22 @@ async function main() {
   });
   while (!started) await new Promise(r => setTimeout(r, 100));
 
-  // P1 hits checkpoints
+  // P1 hits checkpoints — send position first so validation passes
+  const cpPositions = [
+    { lat: 41.4993, lon: -81.6944 }, // cp_0
+    { lat: 41.5003, lon: -81.6934 }, // cp_1
+    { lat: 41.5013, lon: -81.6924 }, // cp_2
+    { lat: 41.5003, lon: -81.6914 }, // cp_3
+    { lat: 41.4993, lon: -81.6904 }, // cp_4
+  ];
   for (let i = 0; i < 5; i++) {
+    const cp = cpPositions[i];
+    ws1.send({ type: 'player_position', roomId: room.roomId, lat: cp.lat, lon: cp.lon, heading: 0, speed: 40, seq: i + 1 });
+    await new Promise(r => setTimeout(r, 50));
     ws1.send({ type: 'race_checkpoint_hit', roomId: room.roomId, lobbyId: lid, checkpointId: `cp_${i}`, seq: i + 1 });
     await new Promise(r => setTimeout(r, 80));
   }
-  console.log('✅ P1 hit 5 CPs\n');
+  console.log(`✅ P1 hit 5 CPs\n`);
 
   // P1 finishes
   ws1.send({ type: 'race_finished', roomId: room.roomId, lobbyId: lid, elapsedMs: 32000, ghost: [1, 2, 3] });
