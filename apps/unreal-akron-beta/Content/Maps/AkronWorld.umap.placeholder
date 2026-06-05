@@ -1,0 +1,19 @@
+# AkronWorld.umap
+
+This file is a binary Unreal Engine 5 World Partition level.
+It must be created inside the Unreal Editor — it cannot be generated from text.
+
+## To create:
+
+1. Open the project in Unreal Editor 5.5
+2. File → New Level → Empty Open World (World Partition)
+3. Save As: Content/Maps/AkronWorld.umap
+4. Configure World Partition:
+   - Grid size: 128 x 128
+   - Cell size: ~500m
+   - Runtime streaming: Distance-based
+5. Add the `CruiseSprintGameMode` to World Settings
+6. Add a PlayerStart actor
+7. Save
+
+This placeholder file can be deleted once the real .umap is created.

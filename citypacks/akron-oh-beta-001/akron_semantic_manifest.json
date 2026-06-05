@@ -1,0 +1,20 @@
+{
+  "city_id": "akron-oh-beta-001",
+  "display_name": "Akron, Ohio",
+  "version": "0.1.0",
+  "bounds": {
+    "west": -81.6202193,
+    "south": 41.0131835,
+    "east": -81.4040243,
+    "north": 41.1441197
+  },
+  "opendrive_file": "akron.xodr",
+  "routes": "akron_routes.json",
+  "road_graph": "akron_road_graph.json",
+  "spawn_points": "akron_spawn_points.json",
+  "pois": "akron_pois.json",
+  "gameplay_layer": "akron_gameplay_layer.json",
+  "route_count": 2,
+  "poi_count": 200,
+  "spawn_point_count": 2
+}

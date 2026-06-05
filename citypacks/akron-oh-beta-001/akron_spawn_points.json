@@ -1,0 +1,16 @@
+[
+  {
+    "id": "spawn_akron_cruise_sprint_001",
+    "lat": 41.0781174,
+    "lon": -81.5121325,
+    "heading": 108.8,
+    "route_id": "akron_cruise_sprint_001"
+  },
+  {
+    "id": "spawn_akron_cruise_sprint_002",
+    "lat": 41.0789965,
+    "lon": -81.5188681,
+    "heading": 233.8,
+    "route_id": "akron_cruise_sprint_002"
+  }
+]

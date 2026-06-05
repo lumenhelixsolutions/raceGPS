@@ -1,0 +1,79 @@
+# Visual Studio / Rider
+.vs/
+*.sln
+*.vcxproj*
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.opendb
+*.db
+*.ipch
+*.aps
+*.ncb
+*.cache
+*.ilk
+*.pdb
+.idea/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.ipa
+
+# Binaries / Build output
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# UE5 specific
+*.uasset.bak
+*.umap.bak
+*.uexp
+*.ubulk
+*.uptnl
+
+# Generated project files (regenerate with GenerateProjectFiles.bat or right-click .uproject)
+*.xcodeproj
+*.xcworkspace
+Makefile
+CMakeLists.txt
+
+# Don't ignore these
+!Config/
+!Content/
+!Source/
+!*.Build.cs
+!*.Target.cs
+!*.uproject
+!README.md
+!citypacks/

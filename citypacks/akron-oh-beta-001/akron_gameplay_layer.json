@@ -1,0 +1,39 @@
+{
+  "speed_zones": [
+    {
+      "type": "highway",
+      "highways": [
+        "motorway",
+        "trunk"
+      ],
+      "speed_kmh": 90
+    },
+    {
+      "type": "arterial",
+      "highways": [
+        "primary",
+        "secondary"
+      ],
+      "speed_kmh": 65
+    },
+    {
+      "type": "local",
+      "highways": [
+        "tertiary",
+        "residential",
+        "unclassified"
+      ],
+      "speed_kmh": 45
+    },
+    {
+      "type": "service",
+      "highways": [
+        "service"
+      ],
+      "speed_kmh": 25
+    }
+  ],
+  "pickup_zones": [],
+  "objective_zones": [],
+  "challenge_zones": []
+}
