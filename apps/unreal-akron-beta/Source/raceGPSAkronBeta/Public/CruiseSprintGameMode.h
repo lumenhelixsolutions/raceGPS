@@ -87,6 +87,12 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
     float BronzeTimeSeconds = 200.0f;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class UPauseMenuWidget> PauseMenuClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class UMainMenuWidget> MainMenuClass;
+
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronRouteSpline> LoadedRoutes;
 
@@ -95,6 +101,9 @@ public:
 
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronPOI> LoadedPOIs;
+
+    UPROPERTY()
+    TObjectPtr<class UPauseMenuWidget> ActivePauseMenu;
 
 protected:
     virtual void OnRaceStateChanged(ECruiseSprintState NewState);

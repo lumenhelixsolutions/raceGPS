@@ -3,6 +3,8 @@
 #include "AkronXodrImporter.h"
 #include "CheckpointGate.h"
 #include "RouteSplineActor.h"
+#include "RoadMeshGenerator.h"
+#include "PauseMenuWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -18,20 +20,31 @@ ACruiseSprintGameMode::ACruiseSprintGameMode(const FObjectInitializer& ObjectIni
 }
 
 void ACruiseSprintGameMode::StartPlay()
-{
-    Super::StartPlay();
-    LoadCityData();
-    CurrentState = ECruiseSprintState::Loading;
-
-    // After a brief load, transition to countdown
-    FTimerHandle LoadTimer;
-    GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
     {
-        CurrentState = ECruiseSprintState::Countdown;
-        CountdownTimer = CountdownDuration;
-        OnRaceStateChanged(CurrentState);
-    }, 1.0f, false);
-}
+        Super::StartPlay();
+        LoadCityData();
+        CurrentState = ECruiseSprintState::Loading;
+
+        // Spawn road meshes asynchronously
+        FActorSpawnParameters RoadParams;
+        RoadParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        ARoadMeshGenerator* RoadGen = GetWorld()->SpawnActor<ARoadMeshGenerator>(
+            ARoadMeshGenerator::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
+        if (RoadGen)
+        {
+            RoadGen->XodrPath = CityPackPath + XodrFile;
+            RoadGen->GenerateRoadMeshAsync();
+        }
+
+        // After road generation + brief load, transition to countdown
+        FTimerHandle LoadTimer;
+        GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
+        {
+            CurrentState = ECruiseSprintState::Countdown;
+            CountdownTimer = CountdownDuration;
+            OnRaceStateChanged(CurrentState);
+        }, 3.0f, false);
+    }
 
 void ACruiseSprintGameMode::Tick(float DeltaTime)
 {
@@ -161,6 +174,18 @@ void ACruiseSprintGameMode::PauseRace()
         CurrentState = ECruiseSprintState::Paused;
         UGameplayStatics::SetGamePaused(GetWorld(), true);
         OnRaceStateChanged(CurrentState);
+
+        APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+        if (PC && PauseMenuClass)
+        {
+            ActivePauseMenu = CreateWidget<UPauseMenuWidget>(PC, PauseMenuClass);
+            if (ActivePauseMenu)
+            {
+                ActivePauseMenu->AddToViewport(100);
+                PC->SetInputMode(FInputModeUIOnly());
+                PC->bShowMouseCursor = true;
+            }
+        }
     }
 }
 
@@ -171,6 +196,19 @@ void ACruiseSprintGameMode::ResumeRace()
         CurrentState = ECruiseSprintState::Racing;
         UGameplayStatics::SetGamePaused(GetWorld(), false);
         OnRaceStateChanged(CurrentState);
+
+        if (ActivePauseMenu)
+        {
+            ActivePauseMenu->RemoveFromParent();
+            ActivePauseMenu = nullptr;
+        }
+
+        APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+        if (PC)
+        {
+            PC->SetInputMode(FInputModeGameOnly());
+            PC->bShowMouseCursor = false;
+        }
     }
 }
 
