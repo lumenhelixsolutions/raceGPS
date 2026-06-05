@@ -97,12 +97,31 @@ struct FDifferentialTuning
     float RearBias = 1.3f;
 };
 
+UENUM(BlueprintType)
+enum class EVehicleClass : uint8
+{
+    Sedan       UMETA(DisplayName = "Sedan"),
+    Sports      UMETA(DisplayName = "Sports"),
+    Truck       UMETA(DisplayName = "Truck"),
+    Hatchback   UMETA(DisplayName = "Hatchback"),
+    SUV         UMETA(DisplayName = "SUV")
+};
+
 UCLASS()
 class RACEGPSAKRONBETA_API UVehicleTuningData : public UDataAsset
 {
     GENERATED_BODY()
 
 public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Vehicle|Info")
+    FString DisplayName = TEXT("Vehicle");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Vehicle|Info")
+    FString Description = TEXT("A vehicle.");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Vehicle|Info")
+    EVehicleClass VehicleClass = EVehicleClass::Sedan;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Vehicle")
     TArray<FWheelTuning> Wheels;
 

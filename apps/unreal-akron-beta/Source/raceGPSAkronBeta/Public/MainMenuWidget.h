@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "VehicleTuningData.h"
 #include "MainMenuWidget.generated.h"
 
 UCLASS()
@@ -24,6 +25,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Menu")
     void OnSelectRouteClicked(const FString& RouteId);
 
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
+    UVehicleTuningData* GetSelectedVehicle() const;
+
+    UFUNCTION()
+    void UpdateVehicleInfo();
+
+    UFUNCTION()
+    void OnVehicleSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
     UPROPERTY(meta = (BindWidget))
     class UButton* PlayButton;
 
@@ -42,9 +52,18 @@ public:
     UPROPERTY(meta = (BindWidget))
     class UComboBoxString* RouteSelector;
 
+    UPROPERTY(meta = (BindWidget))
+    class UComboBoxString* VehicleSelector;
+
+    UPROPERTY(meta = (BindWidget))
+    class UTextBlock* VehicleInfoText;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Menu")
     FString GameLevelName = TEXT("AkronWorld");
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Menu")
     TArray<FString> AvailableRoutes;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Menu")
+    TArray<TObjectPtr<UVehicleTuningData>> AvailableVehicles;
 };

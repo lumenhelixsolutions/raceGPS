@@ -80,6 +80,16 @@ void AChaosVehiclePawn::InitChaosVehicleMovement()
     MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(6000.0f, 300.0f);
 }
 
+void AChaosVehiclePawn::SetTuningData(UVehicleTuningData* NewTuningData)
+{
+    if (!NewTuningData)
+        return;
+
+    TuningData = NewTuningData;
+    ApplyTuningData();
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Tuning applied: %s"), *TuningData->DisplayName);
+}
+
 void AChaosVehiclePawn::ApplyTuningData()
 {
     auto* MoveComp = GetVehicleMovementComponent();

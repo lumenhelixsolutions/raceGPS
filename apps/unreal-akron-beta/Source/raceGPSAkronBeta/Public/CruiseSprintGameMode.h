@@ -159,6 +159,12 @@ public:
     UPROPERTY()
     TObjectPtr<class AGhostVehicle> BestGhost;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Vehicle")
+    TArray<TObjectPtr<class UVehicleTuningData>> VehiclePresets;
+
+    UPROPERTY(BlueprintReadOnly, Category = "raceGPS|Vehicle")
+    TObjectPtr<class UVehicleTuningData> SelectedVehicleTuning;
+
 protected:
     virtual void OnRaceStateChanged(ECruiseSprintState NewState);
 
@@ -184,4 +190,6 @@ protected:
     void UpdateCountdown(float DeltaTime);
     void InitHUDWidgets();
     void OnVehicleCollision(float ImpactSpeedKmh);
+    void CreateDefaultVehiclePresets();
+    void ApplyVehicleTuningToPlayer();
 };

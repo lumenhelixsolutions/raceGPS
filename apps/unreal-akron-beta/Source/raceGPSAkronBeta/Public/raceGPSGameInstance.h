@@ -33,6 +33,9 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "raceGPS|Settings")
     FString LastSelectedVehicle = TEXT("Sedan");
 
+    UPROPERTY(BlueprintReadOnly, Category = "raceGPS|Settings")
+    TObjectPtr<class UVehicleTuningData> LastSelectedVehicleTuning;
+
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|Progress")
     TMap<FString, float> BestTimes;
 

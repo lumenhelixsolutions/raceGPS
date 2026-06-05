@@ -1,6 +1,7 @@
 #include "CruiseSprintGameMode.h"
 #include "raceGPSGameInstance.h"
 #include "ChaosVehiclePawn.h"
+#include "VehicleTuningData.h"
 #include "AkronXodrImporter.h"
 #include "CheckpointGate.h"
 #include "RouteSplineActor.h"
@@ -72,6 +73,33 @@ void ACruiseSprintGameMode::StartPlay()
     if (!ConsoleCommands)
     {
         ConsoleCommands = NewObject<UConsoleCommands>(this);
+    }
+
+    CreateDefaultVehiclePresets();
+
+    // Restore selected vehicle from game instance
+    if (UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance()))
+    {
+        if (GI->LastSelectedVehicleTuning)
+        {
+            SelectedVehicleTuning = GI->LastSelectedVehicleTuning;
+        }
+        else if (VehiclePresets.Num() > 0)
+        {
+            // Try to match by name
+            for (UVehicleTuningData* Preset : VehiclePresets)
+            {
+                if (Preset && Preset->DisplayName == GI->LastSelectedVehicle)
+                {
+                    SelectedVehicleTuning = Preset;
+                    break;
+                }
+            }
+            if (!SelectedVehicleTuning)
+            {
+                SelectedVehicleTuning = VehiclePresets[0];
+            }
+        }
     }
 
     LoadCityData();
@@ -206,6 +234,9 @@ void ACruiseSprintGameMode::SpawnPlayerAtStart()
     {
         PC->GetPawn()->SetActorLocationAndRotation(WorldLoc, Spawn.Rotation, false, nullptr, ETeleportType::ResetPhysics);
     }
+
+    // Apply selected vehicle tuning after spawn/teleport
+    ApplyVehicleTuningToPlayer();
 }
 
 void ACruiseSprintGameMode::SpawnRouteSpline()
@@ -492,5 +523,140 @@ void ACruiseSprintGameMode::OnRaceStateChanged(ECruiseSprintState NewState)
         {
             // Tutorial auto-advances when race starts
         }
+    }
+}
+
+void ACruiseSprintGameMode::CreateDefaultVehiclePresets()
+{
+    auto CreatePreset = [&](const FString& Name, const FString& Desc, EVehicleClass VClass,
+                            float Mass, float MaxRPM, float Drag, int32 Gears,
+                            float BrakeTorque, float HandbrakeTorque,
+                            float SteerCurve, float Downforce) -> UVehicleTuningData*
+    {
+        UVehicleTuningData* Preset = NewObject<UVehicleTuningData>(this);
+        Preset->DisplayName = Name;
+        Preset->Description = Desc;
+        Preset->VehicleClass = VClass;
+        Preset->VehicleMass = Mass;
+        Preset->MaxEngineRPM = MaxRPM;
+        Preset->IdleRPM = 800.0f;
+        Preset->DragCoefficient = Drag;
+        Preset->BrakeTorque = BrakeTorque;
+        Preset->HandbrakeTorque = HandbrakeTorque;
+        Preset->SteeringCurve = SteerCurve;
+        Preset->AckermannAccuracy = 1.0f;
+        Preset->DownForceCoefficient = Downforce;
+        Preset->DownForceOffset = 0.0f;
+        Preset->ChassisWidth = 180.0f;
+        Preset->ChassisHeight = 140.0f;
+
+        // Transmission
+        Preset->Transmission.FinalDriveRatio = 3.5f;
+        Preset->Transmission.ReverseGearRatio = -3.0f;
+        Preset->Transmission.UpShiftRPM = MaxRPM * 0.85f;
+        Preset->Transmission.DownShiftRPM = MaxRPM * 0.3f;
+        Preset->Transmission.ChangeUpTime = 0.3f;
+        Preset->Transmission.ChangeDownTime = 0.3f;
+
+        // Gear ratios based on gear count
+        if (Gears == 5)
+        {
+            Preset->Transmission.GearRatios = { 3.5f, 2.0f, 1.3f, 0.9f, 0.7f };
+        }
+        else if (Gears == 6)
+        {
+            Preset->Transmission.GearRatios = { 3.8f, 2.2f, 1.5f, 1.1f, 0.85f, 0.65f };
+        }
+        else
+        {
+            Preset->Transmission.GearRatios = { 4.0f, 2.5f, 1.6f, 1.2f, 0.9f, 0.7f, 0.55f };
+        }
+
+        // Differential
+        Preset->Differential.DifferentialType = EVehicleDifferential::LimitedSlip_4W;
+        Preset->Differential.FrontRearSplit = 0.5f;
+        Preset->Differential.FrontLeftRightSplit = 0.5f;
+        Preset->Differential.RearLeftRightSplit = 0.5f;
+        Preset->Differential.CentreBias = 1.3f;
+        Preset->Differential.FrontBias = 1.3f;
+        Preset->Differential.RearBias = 1.3f;
+
+        // Wheels (4-wheel setup)
+        FWheelTuning FrontWheel;
+        FrontWheel.Radius = 35.0f;
+        FrontWheel.Width = 20.0f;
+        FrontWheel.Mass = 20.0f;
+        FrontWheel.SteerAngle = 30.0f;
+        FrontWheel.bDrive = true;
+        FrontWheel.bHandbrake = false;
+        FrontWheel.SuspensionStiffness = 450.0f;
+        FrontWheel.SuspensionDamping = 25.0f;
+        FrontWheel.MaxRaise = 10.0f;
+        FrontWheel.MaxDrop = 10.0f;
+
+        FWheelTuning RearWheel;
+        RearWheel.Radius = 35.0f;
+        RearWheel.Width = 20.0f;
+        RearWheel.Mass = 20.0f;
+        RearWheel.SteerAngle = 0.0f;
+        RearWheel.bDrive = true;
+        RearWheel.bHandbrake = true;
+        RearWheel.SuspensionStiffness = 450.0f;
+        RearWheel.SuspensionDamping = 25.0f;
+        RearWheel.MaxRaise = 10.0f;
+        RearWheel.MaxDrop = 10.0f;
+
+        Preset->Wheels.Add(FrontWheel);
+        Preset->Wheels.Add(FrontWheel);
+        Preset->Wheels.Add(RearWheel);
+        Preset->Wheels.Add(RearWheel);
+
+        return Preset;
+    };
+
+    // Sedan — Balanced all-rounder
+    VehiclePresets.Add(CreatePreset(
+        TEXT("Sedan"), TEXT("Balanced handling with moderate speed and grip. Great for learning."),
+        EVehicleClass::Sedan,
+        1500.0f, 7000.0f, 0.30f, 5,
+        1500.0f, 3000.0f,
+        0.5f, 0.1f
+    ));
+
+    // Sports — Fast, light, drift-happy
+    VehiclePresets.Add(CreatePreset(
+        TEXT("Sports"), TEXT("Lightweight and powerful. High top speed, lower grip. Drift king."),
+        EVehicleClass::Sports,
+        1200.0f, 8500.0f, 0.25f, 6,
+        1800.0f, 3500.0f,
+        0.4f, 0.15f
+    ));
+
+    // Truck — Heavy, slow, high grip
+    VehiclePresets.Add(CreatePreset(
+        TEXT("Truck"), TEXT("Heavy and stable. Slow acceleration but excellent grip and braking."),
+        EVehicleClass::Truck,
+        2500.0f, 5500.0f, 0.45f, 5,
+        2500.0f, 4000.0f,
+        0.6f, 0.05f
+    ));
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Created %d vehicle presets"), VehiclePresets.Num());
+}
+
+void ACruiseSprintGameMode::ApplyVehicleTuningToPlayer()
+{
+    if (!SelectedVehicleTuning)
+        return;
+
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (!PC)
+        return;
+
+    AChaosVehiclePawn* Vehicle = Cast<AChaosVehiclePawn>(PC->GetPawn());
+    if (Vehicle)
+    {
+        Vehicle->SetTuningData(SelectedVehicleTuning);
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Applied vehicle tuning: %s"), *SelectedVehicleTuning->DisplayName);
     }
 }

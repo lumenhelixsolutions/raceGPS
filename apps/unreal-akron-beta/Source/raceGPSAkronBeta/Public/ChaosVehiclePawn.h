@@ -45,7 +45,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
     int32 GetCurrentGear() const;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Vehicle")
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
+    void SetTuningData(UVehicleTuningData* NewTuningData);
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "raceGPS|Vehicle")
     TObjectPtr<UVehicleTuningData> TuningData;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Vehicle")
