@@ -93,6 +93,15 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
     TSubclassOf<class UMainMenuWidget> MainMenuClass;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class UMinimapWidget> MinimapClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class UCompassWidget> CompassClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class UDeveloperConsole> DeveloperConsoleClass;
+
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronRouteSpline> LoadedRoutes;
 
@@ -104,6 +113,18 @@ public:
 
     UPROPERTY()
     TObjectPtr<class UPauseMenuWidget> ActivePauseMenu;
+
+    UPROPERTY()
+    TObjectPtr<class UMinimapWidget> MinimapWidget;
+
+    UPROPERTY()
+    TObjectPtr<class UCompassWidget> CompassWidget;
+
+    UPROPERTY()
+    TObjectPtr<class UDeveloperConsole> DevConsole;
+
+    UPROPERTY()
+    TObjectPtr<class URaceScoringSystem> ScoringSystem;
 
 protected:
     virtual void OnRaceStateChanged(ECruiseSprintState NewState);
@@ -128,4 +149,6 @@ protected:
     void SpawnRouteSpline();
     void SpawnCheckpoints();
     void UpdateCountdown(float DeltaTime);
+    void InitHUDWidgets();
+    void OnVehicleCollision(float ImpactSpeedKmh);
 };

@@ -59,6 +59,11 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Components")
     TObjectPtr<class UArrowComponent> Arrow;
 
+    UFUNCTION()
+    void OnVehicleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+                      UPrimitiveComponent* OtherComp, FVector NormalImpulse,
+                      const FHitResult& Hit);
+
 private:
     float CurrentThrottle = 0.0f;
     float CurrentSteering = 0.0f;

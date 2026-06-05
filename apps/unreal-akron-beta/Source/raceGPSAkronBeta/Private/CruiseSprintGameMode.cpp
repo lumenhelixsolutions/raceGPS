@@ -5,6 +5,10 @@
 #include "RouteSplineActor.h"
 #include "RoadMeshGenerator.h"
 #include "PauseMenuWidget.h"
+#include "RaceScoringSystem.h"
+#include "MinimapWidget.h"
+#include "CompassWidget.h"
+#include "DeveloperConsole.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -17,6 +21,7 @@ ACruiseSprintGameMode::ACruiseSprintGameMode(const FObjectInitializer& ObjectIni
 {
     DefaultPawnClass = AChaosVehiclePawn::StaticClass();
     PrimaryActorTick.bCanEverTick = true;
+    ScoringSystem = CreateDefaultSubobject<URaceScoringSystem>(TEXT("ScoringSystem"));
 }
 
 void ACruiseSprintGameMode::StartPlay()
@@ -57,6 +62,48 @@ void ACruiseSprintGameMode::Tick(float DeltaTime)
     else if (CurrentState == ECruiseSprintState::Racing)
     {
         ElapsedTime += DeltaTime;
+    }
+}
+
+void ACruiseSprintGameMode::InitHUDWidgets()
+{
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (!PC)
+        return;
+
+    if (MinimapClass)
+    {
+        MinimapWidget = CreateWidget<UMinimapWidget>(PC, MinimapClass);
+        if (MinimapWidget)
+        {
+            MinimapWidget->AddToViewport(10);
+        }
+    }
+
+    if (CompassClass)
+    {
+        CompassWidget = CreateWidget<UCompassWidget>(PC, CompassClass);
+        if (CompassWidget)
+        {
+            CompassWidget->AddToViewport(10);
+        }
+    }
+
+    if (DeveloperConsoleClass)
+    {
+        DevConsole = CreateWidget<UDeveloperConsole>(PC, DeveloperConsoleClass);
+        if (DevConsole)
+        {
+            DevConsole->AddToViewport(100);
+        }
+    }
+}
+
+void ACruiseSprintGameMode::OnVehicleCollision(float ImpactSpeedKmh)
+{
+    if (ScoringSystem && CurrentState == ECruiseSprintState::Racing)
+    {
+        ScoringSystem->OnCollision(ImpactSpeedKmh);
     }
 }
 
@@ -215,6 +262,21 @@ void ACruiseSprintGameMode::ResumeRace()
 void ACruiseSprintGameMode::FinishRace()
 {
     CurrentState = ECruiseSprintState::Finished;
+
+    if (ScoringSystem)
+    {
+        FRaceScore Score = ScoringSystem->CalculateFinalScore(ElapsedTime);
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Race finished! Base: %.2fs, Penalties: %.2fs, Bonus: %.2fs, Final: %.2fs, Medal: %s"),
+            Score.BaseTime, Score.CollisionPenalty + Score.MissedCheckpointPenalty, Score.CleanDrivingBonus,
+            Score.FinalTime, *Score.Medal);
+
+        UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance());
+        if (GI && LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+        {
+            GI->UpdateBestTime(LoadedRoutes[SelectedRouteIndex].RouteId, Score.FinalTime);
+        }
+    }
+
     OnRaceStateChanged(CurrentState);
 }
 
@@ -224,6 +286,10 @@ void ACruiseSprintGameMode::RestartRace()
     CountdownTimer = CountdownDuration;
     ElapsedTime = 0.0f;
     CurrentCheckpoint = 0;
+    if (ScoringSystem)
+    {
+        ScoringSystem->Reset();
+    }
     OnRaceStateChanged(CurrentState);
 }
 

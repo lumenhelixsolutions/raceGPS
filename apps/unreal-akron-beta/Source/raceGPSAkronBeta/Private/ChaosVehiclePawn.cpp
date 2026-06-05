@@ -69,6 +69,30 @@ void AChaosVehiclePawn::BeginPlay()
     Super::BeginPlay();
     InitChaosVehicleMovement();
     UpdateCameraView();
+
+    GetMesh()->OnComponentHit.AddDynamic(this, &AChaosVehiclePawn::OnVehicleHit);
+}
+
+void AChaosVehiclePawn::OnVehicleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+                                      UPrimitiveComponent* OtherComp, FVector NormalImpulse,
+                                      const FHitResult& Hit)
+{
+    if (!OtherActor || OtherActor == this)
+        return;
+
+    float ImpactSpeed = FMath::Abs(FVector::DotProduct(GetVelocity(), Hit.ImpactNormal));
+    float ImpactKmh = ImpactSpeed * 0.036f;
+
+    if (ImpactKmh > 5.0f)
+    {
+        ACruiseSprintGameMode* GM = Cast<ACruiseSprintGameMode>(GetWorld()->GetAuthGameMode());
+        if (GM)
+        {
+            GM->OnVehicleCollision(ImpactKmh);
+        }
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle collision at %.1f km/h with %s"),
+            ImpactKmh, *OtherActor->GetName());
+    }
 }
 
 void AChaosVehiclePawn::InitChaosVehicleMovement()
