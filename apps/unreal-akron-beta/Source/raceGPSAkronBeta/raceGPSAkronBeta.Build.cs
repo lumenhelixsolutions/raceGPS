@@ -21,6 +21,7 @@ public class raceGPSAkronBeta : ModuleRules
             "SlateCore",
             "Json",
             "JsonUtilities",
+            "XmlParser",
             "Projects",
             "RenderCore",
             "RHI"

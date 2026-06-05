@@ -42,7 +42,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|GameMode")
     void RestartRace();
 
-    UFUNCTION(BlueprintCallable, Category = "raceGPS|GameMode")
+    UFUNCTION()
     void OnCheckpointReached(int32 CheckpointIndex);
 
     UFUNCTION(BlueprintPure, Category = "raceGPS|GameMode")

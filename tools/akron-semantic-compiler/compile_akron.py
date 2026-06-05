@@ -36,37 +36,58 @@ def main() -> int:
 
     # Step 1: Load or fetch OSM data
     osm_path = CITYPACK_DIR / "akron_raw.osm"
+    graph_path = CITYPACK_DIR / "akron_road_graph.json"
+
     if osm_path.exists():
         print(f"[1/7] Using cached OSM: {osm_path}")
         with open(osm_path, "r", encoding="utf-8") as f:
             osm_xml = f.read()
+    elif graph_path.exists():
+        print(f"[1/7] Using cached road graph (OSM fetch skipped): {graph_path}")
+        osm_xml = None
     else:
         print("[1/7] Fetching Akron OSM data...")
-        osm_xml = fetch_osm_for_bounds(**AKRON_BOUNDS)
-        with open(osm_path, "w", encoding="utf-8") as f:
-            f.write(osm_xml)
-        print(f"      Saved: {osm_path}")
+        try:
+            osm_xml = fetch_osm_for_bounds(**AKRON_BOUNDS)
+            with open(osm_path, "w", encoding="utf-8") as f:
+                f.write(osm_xml)
+            print(f"      Saved: {osm_path}")
+        except Exception as e:
+            print(f"[1/7] OSM fetch failed: {e}")
+            print("      No cached data available. Aborting.")
+            return 1
 
-    # Step 2: Convert OSM → OpenDRIVE (optional, requires CARLA)
+    # Step 2: Convert road graph → OpenDRIVE (pure Python, no CARLA)
     xodr_path = CITYPACK_DIR / "akron.xodr"
     if not xodr_path.exists():
-        try:
+        print("[2/7] Generating OpenDRIVE from road graph...")
+        from osm_to_xodr import generate_xodr
+        # If OSM exists, build from OSM; otherwise reuse cached road_graph.json
+        if osm_path.exists():
             from osm_to_xodr import convert_osm_to_xodr
-            print("[2/7] Converting OSM → OpenDRIVE...")
             xodr = convert_osm_to_xodr(osm_path)
             with open(xodr_path, "w", encoding="utf-8") as f:
                 f.write(xodr)
-            print(f"      Saved: {xodr_path}")
-        except ImportError:
-            print("[2/7] SKIPPED: CARLA not installed. Install carla Python API for .xodr output.")
+        else:
+            graph_path = CITYPACK_DIR / "akron_road_graph.json"
+            with open(graph_path, "r", encoding="utf-8") as f:
+                road_graph = json.load(f)
+            generate_xodr(road_graph, xodr_path)
+        print(f"      Saved: {xodr_path}")
     else:
         print(f"[2/7] Using cached OpenDRIVE: {xodr_path}")
 
-    # Step 3: Build semantic road graph
-    print("[3/7] Building semantic road graph...")
-    road_graph = build_road_graph(osm_path)
-    with open(CITYPACK_DIR / "akron_road_graph.json", "w") as f:
-        json.dump(road_graph, f, indent=2)
+    # Step 3: Build or reuse semantic road graph
+    graph_path = CITYPACK_DIR / "akron_road_graph.json"
+    if osm_path.exists():
+        print("[3/7] Building semantic road graph from OSM...")
+        road_graph = build_road_graph(osm_path)
+        with open(graph_path, "w") as f:
+            json.dump(road_graph, f, indent=2)
+    else:
+        print(f"[3/7] Reusing cached road graph: {graph_path}")
+        with open(graph_path, "r") as f:
+            road_graph = json.load(f)
     print(f"      Roads: {len(road_graph.get('roads', []))}")
     print(f"      Intersections: {len(road_graph.get('intersections', []))}")
 
@@ -85,11 +106,17 @@ def main() -> int:
         json.dump(routes, f, indent=2)
     print(f"      Total checkpoints: {sum(len(r['checkpoints']) for r in routes)}")
 
-    # Step 6: Classify POIs
-    print("[6/7] Classifying POIs...")
-    pois = classify_pois(osm_path)
-    with open(CITYPACK_DIR / "akron_pois.json", "w") as f:
-        json.dump(pois, f, indent=2)
+    # Step 6: Classify or reuse POIs
+    pois_path = CITYPACK_DIR / "akron_pois.json"
+    if osm_path.exists():
+        print("[6/7] Classifying POIs from OSM...")
+        pois = classify_pois(osm_path)
+        with open(pois_path, "w") as f:
+            json.dump(pois, f, indent=2)
+    else:
+        print(f"[6/7] Reusing cached POIs: {pois_path}")
+        with open(pois_path, "r") as f:
+            pois = json.load(f)
     print(f"      POIs: {len(pois)}")
 
     # Step 7: Export bundle

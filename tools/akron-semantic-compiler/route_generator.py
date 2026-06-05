@@ -31,7 +31,7 @@ def generate_cruise_sprint(road_graph: dict[str, Any]) -> list[dict]:
     routes = []
     rng = random.Random(42)  # reproducible
 
-    for route_idx in range(3):
+    for route_idx in range(2):
         # Pick a start road near the center (roughly 41.08, -81.52)
         center_roads = sorted(roads, key=lambda r: abs(r["points"][0]["lat"] - 41.08) + abs(r["points"][0]["lon"] + 81.52))[:20]
         start_road = rng.choice(center_roads)
@@ -42,7 +42,7 @@ def generate_cruise_sprint(road_graph: dict[str, Any]) -> list[dict]:
         current_road = start_road
         used_ids = {start_road["id"]}
 
-        for _ in range(15):  # up to 15 road segments
+        for _ in range(30):  # up to 30 road segments
             # Find roads that connect to the end of current road
             end_pt = current_road["points"][-1]
             candidates = []
@@ -51,7 +51,7 @@ def generate_cruise_sprint(road_graph: dict[str, Any]) -> list[dict]:
                     continue
                 # Check if any point of r is close to end_pt
                 for pt in r["points"]:
-                    if _haversine(end_pt, pt) < 50:  # within 50m
+                    if _haversine(end_pt, pt) < 100:  # within 100m
                         candidates.append(r)
                         break
             if not candidates:
@@ -68,7 +68,7 @@ def generate_cruise_sprint(road_graph: dict[str, Any]) -> list[dict]:
             current_road = next_road
 
         dist = _route_length(route_points)
-        if dist < 500:
+        if dist < 800:
             continue
 
         routes.append({

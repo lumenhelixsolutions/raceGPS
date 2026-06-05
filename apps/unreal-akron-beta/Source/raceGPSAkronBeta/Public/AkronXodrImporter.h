@@ -83,6 +83,9 @@ public:
     static bool ImportXodr(const FString& XodrPath, TArray<FAkronRoadSegment>& OutRoads);
 
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Akron")
+    static bool LoadRoadGraphJson(const FString& JsonPath, TArray<FAkronRoadSegment>& OutRoads);
+
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Akron")
     static bool LoadManifest(const FString& ManifestPath, float& OutWorldOriginX, float& OutWorldOriginY);
 
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Akron")
@@ -100,4 +103,5 @@ public:
 private:
     static float MetersPerDegreeLon(float Lat);
     static float MetersPerDegreeLat();
+    static FVector XodrToWorld(float X, float Y, float OriginLat, float OriginLon);
 };

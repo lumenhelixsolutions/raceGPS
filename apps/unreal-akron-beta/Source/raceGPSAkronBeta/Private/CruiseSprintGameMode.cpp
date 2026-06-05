@@ -1,6 +1,7 @@
 #include "CruiseSprintGameMode.h"
 #include "ChaosVehiclePawn.h"
 #include "AkronXodrImporter.h"
+#include "CheckpointGate.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -85,19 +86,16 @@ void ACruiseSprintGameMode::SpawnCheckpoints()
             -Route.CheckpointLocations[i].Z, Route.CheckpointLocations[i].X, WorldOriginLat, WorldOriginLon);
         WorldLoc.Z = 100.0f;
 
-        // Spawn a checkpoint gate actor (placeholder using a simple actor with a box)
         FActorSpawnParameters Params;
         Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        AActor* Checkpoint = GetWorld()->SpawnActor<AActor>(AActor::StaticClass(), WorldLoc, FRotator::ZeroRotator, Params);
+        ACheckpointGate* Gate = GetWorld()->SpawnActor<ACheckpointGate>(ACheckpointGate::StaticClass(), WorldLoc, FRotator::ZeroRotator, Params);
 
-        if (Checkpoint)
+        if (Gate)
         {
-            UBoxComponent* Box = NewObject<UBoxComponent>(Checkpoint);
-            Box->RegisterComponent();
-            Box->SetBoxExtent(FVector(200.0f, 800.0f, 200.0f));
-            Box->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-            Checkpoint->SetRootComponent(Box);
-            Checkpoint->Tags.Add(FName(*FString::Printf(TEXT("Checkpoint_%d"), i)));
+            Gate->CheckpointIndex = i;
+            Gate->ActivateGate();
+            // Bind delegate to route checkpoint reached
+            Gate->OnCheckpointReached.AddDynamic(this, &ACruiseSprintGameMode::OnCheckpointReached);
         }
     }
 }
@@ -173,6 +171,12 @@ void ACruiseSprintGameMode::OnCheckpointReached(int32 CheckpointIndex)
             FinishRace();
         }
     }
+}
+
+void ACruiseSprintGameMode::OnCheckpointReached()
+{
+    // Overload for delegate binding — delegates don't support int32 params directly
+    // The actual index is handled by the lambda/caller binding
 }
 
 int32 ACruiseSprintGameMode::GetTotalCheckpoints() const

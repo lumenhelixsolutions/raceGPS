@@ -5,6 +5,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "Math/UnrealMathUtility.h"
+#include "XmlParser/Public/XmlFile.h"
+#include "XmlParser/Public/XmlNode.h"
 
 const float EARTH_RADIUS_M = 6371000.0f;
 
@@ -29,30 +31,199 @@ FVector UAkronXodrImporter::GeoToWorld(float Lat, float Lon, float OriginLat, fl
     return FVector(X, Y, Z);
 }
 
+FVector UAkronXodrImporter::XodrToWorld(float X, float Y, float OriginLat, float OriginLon)
+{
+    // OpenDRIVE: X=east, Y=north
+    // Unreal:    X=east, Z=-north (south is positive Z)
+    // Origin already baked into XODR local coords, so just remap axes
+    (void)OriginLat;
+    (void)OriginLon;
+    return FVector(X, 0.0f, -Y);
+}
+
 bool UAkronXodrImporter::ImportXodr(const FString& XodrPath, TArray<FAkronRoadSegment>& OutRoads)
 {
     FString FullPath = FPaths::ProjectDir() / XodrPath;
-    FString Content;
-    if (!FFileHelper::LoadFileToString(Content, *FullPath))
+    if (!FPaths::FileExists(FullPath))
     {
-        UE_LOG(LogTemp, Error, TEXT("[raceGPS] Failed to load XODR: %s"), *FullPath);
+        UE_LOG(LogTemp, Warning, TEXT("[raceGPS] XODR not found: %s. Falling back to road_graph.json"), *FullPath);
+        FString JsonPath = FPaths::GetPath(XodrPath) / TEXT("akron_road_graph.json");
+        return LoadRoadGraphJson(JsonPath, OutRoads);
+    }
+
+    FXmlFile XmlFile;
+    if (!XmlFile.LoadFile(FullPath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[raceGPS] Failed to parse XODR XML: %s"), *FullPath);
         return false;
     }
 
-    // TODO: Parse OpenDRIVE XML properly via pugixml or rapidxml.
-    // For now we stub with a single representative road so the level loads.
-    UE_LOG(LogTemp, Warning, TEXT("[raceGPS] XODR XML parser not yet implemented; using stub road data."));
+    FXmlNode* RootNode = XmlFile.GetRootNode();
+    if (!RootNode)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[raceGPS] XODR has no root node"));
+        return false;
+    }
 
-    // Stub: one long straight road segment for validation
-    FAkronRoadSegment Stub;
-    Stub.RoadId = TEXT("stub_road_001");
-    Stub.WidthMeters = 7.0f;
-    Stub.NumLanes = 2;
-    Stub.WorldPoints.Add(FVector(0.0f, 0.0f, 0.0f));
-    Stub.WorldPoints.Add(FVector(1000.0f, 0.0f, 0.0f));
-    OutRoads.Add(Stub);
+    // Parse geoReference from header to extract origin
+    float OriginLat = 41.08f;
+    float OriginLon = -81.52f;
+    const FXmlNode* HeaderNode = RootNode->FindChildNode(TEXT("header"));
+    if (HeaderNode)
+    {
+        const FXmlNode* GeoRefNode = HeaderNode->FindChildNode(TEXT("geoReference"));
+        if (GeoRefNode)
+        {
+            FString GeoRef = GeoRefNode->GetContent();
+            // Extract +lat_0 and +lon_0 from PROJ string
+            int32 LatIdx = GeoRef.Find(TEXT("+lat_0="));
+            int32 LonIdx = GeoRef.Find(TEXT("+lon_0="));
+            if (LatIdx != INDEX_NONE)
+            {
+                FString LatStr = GeoRef.Mid(LatIdx + 7);
+                int32 SpaceIdx = LatStr.Find(TEXT(" "));
+                if (SpaceIdx != INDEX_NONE) LatStr = LatStr.Left(SpaceIdx);
+                OriginLat = FCString::Atof(*LatStr);
+            }
+            if (LonIdx != INDEX_NONE)
+            {
+                FString LonStr = GeoRef.Mid(LonIdx + 7);
+                int32 SpaceIdx = LonStr.Find(TEXT(" "));
+                if (SpaceIdx != INDEX_NONE) LonStr = LonStr.Left(SpaceIdx);
+                OriginLon = FCString::Atof(*LonStr);
+            }
+        }
+    }
 
-    return true;
+    // Parse roads
+    const TArray<FXmlNode*>& ChildNodes = RootNode->GetChildrenNodes();
+    for (const FXmlNode* Child : ChildNodes)
+    {
+        if (Child->GetTag() != TEXT("road"))
+            continue;
+
+        FAkronRoadSegment Segment;
+        Segment.RoadId = Child->GetAttribute(TEXT("id"));
+        Segment.WidthMeters = 7.0f;
+        Segment.NumLanes = 2;
+
+        // Parse lanes for width
+        const FXmlNode* LanesNode = Child->FindChildNode(TEXT("lanes"));
+        if (LanesNode)
+        {
+            const FXmlNode* LaneSectionNode = LanesNode->FindChildNode(TEXT("laneSection"));
+            if (LaneSectionNode)
+            {
+                const FXmlNode* RightNode = LaneSectionNode->FindChildNode(TEXT("right"));
+                if (RightNode)
+                {
+                    const FXmlNode* LaneNode = RightNode->FindChildNode(TEXT("lane"));
+                    if (LaneNode)
+                    {
+                        const FXmlNode* WidthNode = LaneNode->FindChildNode(TEXT("width"));
+                        if (WidthNode)
+                        {
+                            FString WidthStr = WidthNode->GetAttribute(TEXT("a"));
+                            Segment.WidthMeters = FCString::Atof(*WidthStr) * 2.0f; // Both sides
+                        }
+                    }
+                }
+                const FXmlNode* LeftNode = LaneSectionNode->FindChildNode(TEXT("left"));
+                Segment.NumLanes = LeftNode ? 2 : 1;
+            }
+        }
+
+        // Parse planView geometry
+        const FXmlNode* PlanViewNode = Child->FindChildNode(TEXT("planView"));
+        if (PlanViewNode)
+        {
+            const TArray<FXmlNode*>& GeomNodes = PlanViewNode->GetChildrenNodes();
+            for (const FXmlNode* Geom : GeomNodes)
+            {
+                if (Geom->GetTag() != TEXT("geometry"))
+                    continue;
+
+                FString XStr = Geom->GetAttribute(TEXT("x"));
+                FString YStr = Geom->GetAttribute(TEXT("y"));
+                float X = FCString::Atof(*XStr);
+                float Y = FCString::Atof(*YStr);
+                Segment.WorldPoints.Add(XodrToWorld(X, Y, OriginLat, OriginLon));
+            }
+        }
+
+        if (Segment.WorldPoints.Num() >= 2)
+        {
+            OutRoads.Add(Segment);
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Imported %d roads from XODR"), OutRoads.Num());
+    return OutRoads.Num() > 0;
+}
+
+bool UAkronXodrImporter::LoadRoadGraphJson(const FString& JsonPath, TArray<FAkronRoadSegment>& OutRoads)
+{
+    FString FullPath = FPaths::ProjectDir() / JsonPath;
+    FString Content;
+    if (!FFileHelper::LoadFileToString(Content, *FullPath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[raceGPS] Failed to load road graph: %s"), *FullPath);
+        return false;
+    }
+
+    TSharedPtr<FJsonObject> Root;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
+    if (!FJsonSerializer::Deserialize(Reader, Root))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[raceGPS] Failed to parse road graph JSON"));
+        return false;
+    }
+
+    float OriginLat = 41.08f;
+    float OriginLon = -81.52f;
+
+    const TArray<TSharedPtr<FJsonValue>>* RoadsArr;
+    if (Root->TryGetArrayField(TEXT("roads"), RoadsArr))
+    {
+        for (const TSharedPtr<FJsonValue>& Val : *RoadsArr)
+        {
+            const TSharedPtr<FJsonObject>* RoadObj;
+            if (!Val->TryGetObject(RoadObj)) continue;
+
+            FAkronRoadSegment Segment;
+            (*RoadObj)->TryGetStringField(TEXT("id"), Segment.RoadId);
+            double Width = 7.0;
+            (*RoadObj)->TryGetNumberField(TEXT("width"), Width);
+            Segment.WidthMeters = static_cast<float>(Width);
+
+            bool bOneWay = false;
+            (*RoadObj)->TryGetBoolField(TEXT("oneway"), bOneWay);
+            Segment.NumLanes = bOneWay ? 1 : 2;
+
+            const TArray<TSharedPtr<FJsonValue>>* PointsArr;
+            if ((*RoadObj)->TryGetArrayField(TEXT("points"), PointsArr))
+            {
+                for (const TSharedPtr<FJsonValue>& PtVal : *PointsArr)
+                {
+                    const TSharedPtr<FJsonObject>* PtObj;
+                    if (!PtVal->TryGetObject(PtObj)) continue;
+
+                    double Lat = 0.0, Lon = 0.0;
+                    (*PtObj)->TryGetNumberField(TEXT("lat"), Lat);
+                    (*PtObj)->TryGetNumberField(TEXT("lon"), Lon);
+                    Segment.WorldPoints.Add(GeoToWorld(static_cast<float>(Lat), static_cast<float>(Lon), OriginLat, OriginLon));
+                }
+            }
+
+            if (Segment.WorldPoints.Num() >= 2)
+            {
+                OutRoads.Add(Segment);
+            }
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Loaded %d roads from road graph JSON"), OutRoads.Num());
+    return OutRoads.Num() > 0;
 }
 
 bool UAkronXodrImporter::LoadManifest(const FString& ManifestPath, float& OutWorldOriginX, float& OutWorldOriginY)
@@ -117,7 +288,6 @@ bool UAkronXodrImporter::LoadRouteSplines(const FString& RouteDir, TArray<FAkron
                     double Lat = 0.0, Lon = 0.0;
                     (*Pt)->TryGetNumberField(TEXT("lat"), Lat);
                     (*Pt)->TryGetNumberField(TEXT("lon"), Lon);
-                    // Note: GeoToWorld requires origin; caller must offset afterward
                     Route.Waypoints.Add(FVector(static_cast<float>(Lon), 0.0f, -static_cast<float>(Lat)));
                 }
             }

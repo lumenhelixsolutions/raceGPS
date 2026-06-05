@@ -3,10 +3,10 @@
   "display_name": "Akron, Ohio",
   "version": "0.1.0",
   "bounds": {
-    "west": -81.6202193,
-    "south": 41.0131835,
-    "east": -81.4040243,
-    "north": 41.1441197
+    "west": -81.62,
+    "south": 40.98,
+    "east": -81.43,
+    "north": 41.16
   },
   "opendrive_file": "akron.xodr",
   "routes": "akron_routes.json",
