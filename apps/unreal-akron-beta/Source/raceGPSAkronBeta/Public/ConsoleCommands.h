@@ -42,4 +42,7 @@ public:
 
     UFUNCTION(Exec, Category = "raceGPS|Debug")
     void DebugReloadCity();
+
+    UFUNCTION(Exec, Category = "raceGPS|Debug")
+    void DebugDumpRaceState();
 };

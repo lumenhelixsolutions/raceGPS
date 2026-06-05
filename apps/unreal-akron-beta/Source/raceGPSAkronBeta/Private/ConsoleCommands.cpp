@@ -120,3 +120,30 @@ void UConsoleCommands::DebugReloadCity()
         UE_LOG(LogTemp, Log, TEXT("[raceGPS] City reloaded"));
     }
 }
+
+void UConsoleCommands::DebugDumpRaceState()
+{
+    ACruiseSprintGameMode* GM = Cast<ACruiseSprintGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+    if (!GM)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[raceGPS] No GameMode found"));
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] === RACE STATE DUMP ==="));
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] State: %s"), *UEnum::GetValueAsString(GM->GetRaceState()));
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Elapsed Time: %.2fs"), GM->GetElapsedTime());
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Checkpoint: %d / %d"), GM->GetCurrentCheckpoint(), GM->GetTotalCheckpoints());
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Total Distance: %.0fm"), GM->GetTotalRaceDistance());
+
+    AChaosVehiclePawn* Vehicle = Cast<AChaosVehiclePawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+    if (Vehicle)
+    {
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle Speed: %.1f km/h"), Vehicle->GetSpeedKmh());
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle RPM: %.0f"), Vehicle->GetEngineRPM());
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle Gear: %d"), Vehicle->GetCurrentGear());
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle Pos: %s"), *Vehicle->GetActorLocation().ToString());
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] === END DUMP ==="));
+}
