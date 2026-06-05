@@ -6,6 +6,7 @@
 #include "RoadMeshGenerator.h"
 #include "PauseMenuWidget.h"
 #include "RaceScoringSystem.h"
+#include "RaceReplayManager.h"
 #include "MinimapWidget.h"
 #include "CompassWidget.h"
 #include "DeveloperConsole.h"
@@ -29,31 +30,37 @@ ACruiseSprintGameMode::ACruiseSprintGameMode(const FObjectInitializer& ObjectIni
 }
 
 void ACruiseSprintGameMode::StartPlay()
+{
+    Super::StartPlay();
+
+    if (!ReplayManager)
     {
-        Super::StartPlay();
-        LoadCityData();
-        CurrentState = ECruiseSprintState::Loading;
-
-        // Spawn road meshes asynchronously
-        FActorSpawnParameters RoadParams;
-        RoadParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        ARoadMeshGenerator* RoadGen = GetWorld()->SpawnActor<ARoadMeshGenerator>(
-            ARoadMeshGenerator::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
-        if (RoadGen)
-        {
-            RoadGen->XodrPath = CityPackPath + XodrFile;
-            RoadGen->GenerateRoadMeshAsync();
-        }
-
-        // After road generation + brief load, transition to countdown
-        FTimerHandle LoadTimer;
-        GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
-        {
-            CurrentState = ECruiseSprintState::Countdown;
-            CountdownTimer = CountdownDuration;
-            OnRaceStateChanged(CurrentState);
-        }, 3.0f, false);
+        ReplayManager = NewObject<URaceReplayManager>(this);
     }
+
+    LoadCityData();
+    CurrentState = ECruiseSprintState::Loading;
+
+    // Spawn road meshes asynchronously
+    FActorSpawnParameters RoadParams;
+    RoadParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    ARoadMeshGenerator* RoadGen = GetWorld()->SpawnActor<ARoadMeshGenerator>(
+        ARoadMeshGenerator::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
+    if (RoadGen)
+    {
+        RoadGen->XodrPath = CityPackPath + XodrFile;
+        RoadGen->GenerateRoadMeshAsync();
+    }
+
+    // After road generation + brief load, transition to countdown
+    FTimerHandle LoadTimer;
+    GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
+    {
+        CurrentState = ECruiseSprintState::Countdown;
+        CountdownTimer = CountdownDuration;
+        OnRaceStateChanged(CurrentState);
+    }, 3.0f, false);
+}
 
 void ACruiseSprintGameMode::Tick(float DeltaTime)
 {
@@ -66,6 +73,15 @@ void ACruiseSprintGameMode::Tick(float DeltaTime)
     else if (CurrentState == ECruiseSprintState::Racing)
     {
         ElapsedTime += DeltaTime;
+        if (ReplayManager)
+        {
+            ReplayManager->TickRecording(DeltaTime);
+        }
+    }
+
+    if (ReplayManager)
+    {
+        ReplayManager->TickPlayback(DeltaTime);
     }
 }
 
@@ -224,6 +240,21 @@ void ACruiseSprintGameMode::StartRace()
     ElapsedTime = 0.0f;
     CurrentCheckpoint = 0;
     SpawnRouteSpline();
+
+    // Load best replay ghost
+    if (ReplayManager && LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+    {
+        FString RouteId = LoadedRoutes[SelectedRouteIndex].RouteId;
+        if (ReplayManager->HasBestReplay(RouteId))
+        {
+            ReplayManager->LoadBestReplay(RouteId);
+            if (BestGhost)
+            {
+                ReplayManager->PlayBestReplay(BestGhost, CountdownDuration + 2.0f);
+            }
+        }
+    }
+
     OnRaceStateChanged(CurrentState);
 }
 
@@ -290,6 +321,24 @@ void ACruiseSprintGameMode::FinishRace()
         }
     }
 
+    // Save replay if it's the best
+    if (ReplayManager && LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+    {
+        ReplayManager->EndRaceRecording();
+        FString RouteId = LoadedRoutes[SelectedRouteIndex].RouteId;
+
+        UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance());
+        if (GI)
+        {
+            float BestTime = GI->GetBestTime(RouteId);
+            if (BestTime < 0.0f || ElapsedTime <= BestTime)
+            {
+                ReplayManager->SaveBestReplay(RouteId);
+                UE_LOG(LogTemp, Log, TEXT("[raceGPS] New best replay saved for %s"), *RouteId);
+            }
+        }
+    }
+
     OnRaceStateChanged(CurrentState);
 }
 
@@ -302,6 +351,10 @@ void ACruiseSprintGameMode::RestartRace()
     if (ScoringSystem)
     {
         ScoringSystem->Reset();
+    }
+    if (ReplayManager)
+    {
+        ReplayManager->BeginRaceRecording();
     }
     OnRaceStateChanged(CurrentState);
 }

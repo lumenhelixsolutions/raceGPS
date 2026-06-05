@@ -129,6 +129,12 @@ public:
     UPROPERTY()
     TObjectPtr<class URaceScoringSystem> ScoringSystem;
 
+    UPROPERTY()
+    TObjectPtr<class URaceReplayManager> ReplayManager;
+
+    UPROPERTY()
+    TObjectPtr<class AGhostVehicle> BestGhost;
+
 protected:
     virtual void OnRaceStateChanged(ECruiseSprintState NewState);
 
