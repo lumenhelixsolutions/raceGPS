@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "raceGPS Citypack Schema v1",
+  "type": "object",
+  "required": ["name", "version", "generated_at", "format", "statistics", "roads", "buildings", "pois", "routes"],
+  "properties": {
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "format": { "type": "string", "enum": ["racegps-citypack-v1"] },
+    "statistics": {
+      "type": "object",
+      "required": ["roads", "junctions", "buildings", "pois"],
+      "properties": {
+        "roads": { "type": "integer", "minimum": 0 },
+        "junctions": { "type": "integer", "minimum": 0 },
+        "buildings": { "type": "integer", "minimum": 0 },
+        "pois": { "type": "integer", "minimum": 0 },
+        "nodes": { "type": "integer", "minimum": 0 },
+        "ways": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "roads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "coordinates"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "coordinates": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+          "lanes": { "type": "integer", "minimum": 1 },
+          "oneway": { "type": "boolean" }
+        }
+      }
+    },
+    "buildings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "coordinates"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "coordinates": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+          "levels": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "pois": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "category"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "type": { "type": "string", "enum": ["node", "way"] }
+        }
+      }
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "difficulty"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "difficulty": { "type": "string", "enum": ["easy", "medium", "hard", "extreme"] },
+          "estimated_length_km": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
