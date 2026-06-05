@@ -103,6 +103,9 @@ public:
     TSubclassOf<class UDeveloperConsole> DeveloperConsoleClass;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
+    TSubclassOf<class ULoadingScreenWidget> LoadingScreenClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
     TSubclassOf<class ANeonHUD> NeonHUDClass;
 
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
@@ -125,6 +128,9 @@ public:
 
     UPROPERTY()
     TObjectPtr<class UDeveloperConsole> DevConsole;
+
+    UPROPERTY()
+    TObjectPtr<class ULoadingScreenWidget> LoadingScreen;
 
     UPROPERTY()
     TObjectPtr<class URaceScoringSystem> ScoringSystem;

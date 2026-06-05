@@ -8,6 +8,7 @@
 #include "RaceScoringSystem.h"
 #include "RaceReplayManager.h"
 #include "LeaderboardSystem.h"
+#include "LoadingScreenWidget.h"
 #include "MinimapWidget.h"
 #include "CompassWidget.h"
 #include "DeveloperConsole.h"
@@ -62,6 +63,12 @@ void ACruiseSprintGameMode::StartPlay()
     FTimerHandle LoadTimer;
     GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
     {
+        if (LoadingScreen)
+        {
+            LoadingScreen->SetProgress(1.0f);
+            LoadingScreen->SetStatusText(TEXT("Ready!"));
+            LoadingScreen->FinishLoading();
+        }
         CurrentState = ECruiseSprintState::Countdown;
         CountdownTimer = CountdownDuration;
         OnRaceStateChanged(CurrentState);
@@ -96,6 +103,16 @@ void ACruiseSprintGameMode::InitHUDWidgets()
     APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
     if (!PC)
         return;
+
+    if (LoadingScreenClass)
+    {
+        LoadingScreen = CreateWidget<ULoadingScreenWidget>(PC, LoadingScreenClass);
+        if (LoadingScreen)
+        {
+            LoadingScreen->AddToViewport(200);
+            LoadingScreen->StartLoading();
+        }
+    }
 
     if (MinimapClass)
     {
