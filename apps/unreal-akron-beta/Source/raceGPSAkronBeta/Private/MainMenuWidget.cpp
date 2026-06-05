@@ -4,8 +4,13 @@
 #include "Components/ComboBoxString.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
 #include "raceGPSGameInstance.h"
 #include "VehicleTuningData.h"
+#include "Version.h"
 
 void UMainMenuWidget::NativeConstruct()
 {
@@ -70,7 +75,25 @@ void UMainMenuWidget::NativeConstruct()
 
     if (VersionText)
     {
-        VersionText->SetText(FText::FromString(TEXT("v0.1.0 Beta")));
+        FString GameVer = FString(RACEGPS_VERSION_STRING);
+        FString CityVer = TEXT("unknown");
+        FString CityName = TEXT("Akron");
+
+        FString ManifestPath = FPaths::ProjectDir() / TEXT("citypacks/akron-oh-beta-001/akron_semantic_manifest.json");
+        FString Content;
+        if (FFileHelper::LoadFileToString(Content, *ManifestPath))
+        {
+            TSharedPtr<FJsonObject> Root;
+            TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
+            if (FJsonSerializer::Deserialize(Reader, Root))
+            {
+                Root->TryGetStringField(TEXT("version"), CityVer);
+                Root->TryGetStringField(TEXT("display_name"), CityName);
+            }
+        }
+
+        FString VersionStr = FString::Printf(TEXT("Game %s | %s %s"), *GameVer, *CityName, *CityVer);
+        VersionText->SetText(FText::FromString(VersionStr));
     }
 }
 

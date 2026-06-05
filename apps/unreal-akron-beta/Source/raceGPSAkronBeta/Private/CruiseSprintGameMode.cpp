@@ -3,6 +3,9 @@
 #include "ChaosVehiclePawn.h"
 #include "VehicleTuningData.h"
 #include "AkronXodrImporter.h"
+#include "BuildingMeshGenerator.h"
+#include "StreetFurnitureSpawner.h"
+#include "Version.h"
 #include "CheckpointGate.h"
 #include "RouteSplineActor.h"
 #include "RoadMeshGenerator.h"
@@ -116,6 +119,30 @@ void ACruiseSprintGameMode::StartPlay()
         RoadGen->GenerateRoadMeshAsync();
     }
 
+    // Spawn building generator
+    if (BuildingGeneratorClass)
+    {
+        ABuildingMeshGenerator* BuildingGen = GetWorld()->SpawnActor<ABuildingMeshGenerator>(
+            BuildingGeneratorClass, FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
+        if (BuildingGen)
+        {
+            BuildingGen->BuildingsJsonPath = CityPackPath + TEXT("akron_buildings.json");
+            BuildingGen->GenerateBuildingsAsync();
+        }
+    }
+
+    // Spawn street furniture
+    if (FurnitureSpawnerClass)
+    {
+        AStreetFurnitureSpawner* Furniture = GetWorld()->SpawnActor<AStreetFurnitureSpawner>(
+            FurnitureSpawnerClass, FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
+        if (Furniture)
+        {
+            Furniture->RoadGraphJsonPath = CityPackPath + TEXT("akron_road_graph.json");
+            Furniture->SpawnFurnitureAsync();
+        }
+    }
+
     // After road generation + brief load, transition to countdown
     FTimerHandle LoadTimer;
     GetWorld()->GetTimerManager().SetTimer(LoadTimer, [this]()
@@ -207,6 +234,21 @@ void ACruiseSprintGameMode::OnVehicleCollision(float ImpactSpeedKmh)
     }
 }
 
+bool ACruiseSprintGameMode::IsVersionCompatible(const FString& CityVersion) const
+{
+    // Simple semver check: major.minor must match
+    FString GameVersion = FString(RACEGPS_VERSION_STRING);
+    TArray<FString> GameParts;
+    GameVersion.ParseIntoArray(GameParts, TEXT("."));
+    TArray<FString> CityParts;
+    CityVersion.ParseIntoArray(CityParts, TEXT("."));
+
+    if (GameParts.Num() < 2 || CityParts.Num() < 2)
+        return true; // Be lenient if parsing fails
+
+    return GameParts[0] == CityParts[0] && GameParts[1] == CityParts[1];
+}
+
 void ACruiseSprintGameMode::LoadCityData()
 {
     FString ManifestPath = CityPackPath + ManifestFile;
@@ -215,6 +257,31 @@ void ACruiseSprintGameMode::LoadCityData()
     UAkronXodrImporter::LoadRouteSplines(RouteDir, LoadedRoutes);
     UAkronXodrImporter::LoadSpawnPoints(ManifestPath, LoadedSpawns);
     UAkronXodrImporter::LoadPOIs(ManifestPath, LoadedPOIs);
+
+    // Version compatibility check
+    FString FullManifestPath = FPaths::ProjectDir() / ManifestPath;
+    FString Content;
+    if (FFileHelper::LoadFileToString(Content, *FullManifestPath))
+    {
+        TSharedPtr<FJsonObject> Root;
+        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
+        if (FJsonSerializer::Deserialize(Reader, Root))
+        {
+            FString CityVersion;
+            if (Root->TryGetStringField(TEXT("version"), CityVersion))
+            {
+                if (!IsVersionCompatible(CityVersion))
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Citypack version %s may be incompatible with game %s"),
+                        *CityVersion, FString(RACEGPS_VERSION_STRING));
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Citypack version %s is compatible"), *CityVersion);
+                }
+            }
+        }
+    }
 
     UE_LOG(LogTemp, Log, TEXT("[raceGPS] City data loaded. Routes: %d, Spawns: %d, POIs: %d"),
         LoadedRoutes.Num(), LoadedSpawns.Num(), LoadedPOIs.Num());

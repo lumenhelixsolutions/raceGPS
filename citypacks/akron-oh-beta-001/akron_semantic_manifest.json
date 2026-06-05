@@ -1,7 +1,13 @@
 {
   "city_id": "akron-oh-beta-001",
   "display_name": "Akron, Ohio",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "game_version_min": "0.1.0",
+  "game_version_max": "0.2.0",
+  "origin": {
+    "lat": 41.06999999999999,
+    "lon": -81.525
+  },
   "bounds": {
     "west": -81.62,
     "south": 40.98,
@@ -13,8 +19,10 @@
   "road_graph": "akron_road_graph.json",
   "spawn_points": "akron_spawn_points.json",
   "pois": "akron_pois.json",
+  "buildings": "akron_buildings.json",
   "gameplay_layer": "akron_gameplay_layer.json",
   "route_count": 2,
-  "poi_count": 200,
-  "spawn_point_count": 2
+  "poi_count": 590,
+  "spawn_point_count": 2,
+  "building_count": 25022
 }

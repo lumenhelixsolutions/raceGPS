@@ -10,6 +10,7 @@ def export_bundle(
     bounds: dict[str, float],
     routes: list[dict[str, Any]],
     pois: list[dict[str, Any]],
+    buildings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the semantic manifest and write spawn points + gameplay layer."""
 
@@ -44,21 +45,30 @@ def export_bundle(
     with open(citypack_dir / "akron_gameplay_layer.json", "w") as f:
         json.dump(gameplay_layer, f, indent=2)
 
+    # Origin for coordinate conversion
+    origin_lat = (bounds["south"] + bounds["north"]) / 2.0
+    origin_lon = (bounds["west"] + bounds["east"]) / 2.0
+
     # Manifest
     manifest = {
         "city_id": "akron-oh-beta-001",
         "display_name": "Akron, Ohio",
-        "version": "0.1.0",
+        "version": "0.2.0",
+        "game_version_min": "0.1.0",
+        "game_version_max": "0.2.0",
+        "origin": {"lat": origin_lat, "lon": origin_lon},
         "bounds": bounds,
         "opendrive_file": "akron.xodr",
         "routes": "akron_routes.json",
         "road_graph": "akron_road_graph.json",
         "spawn_points": "akron_spawn_points.json",
         "pois": "akron_pois.json",
+        "buildings": "akron_buildings.json",
         "gameplay_layer": "akron_gameplay_layer.json",
         "route_count": len(routes),
         "poi_count": len(pois),
         "spawn_point_count": len(spawn_points),
+        "building_count": len(buildings) if buildings else 0,
     }
 
     return manifest

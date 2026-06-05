@@ -16,6 +16,7 @@ CITYPACK_DIR.mkdir(parents=True, exist_ok=True)
 
 from fetch_osm import fetch_osm_for_bounds
 from road_graph import build_road_graph
+from building_extractor import extract_buildings, export_buildings
 from route_generator import generate_cruise_sprint
 from checkpoint_generator import place_checkpoints
 from poi_classifier import classify_pois
@@ -106,22 +107,39 @@ def main() -> int:
         json.dump(routes, f, indent=2)
     print(f"      Total checkpoints: {sum(len(r['checkpoints']) for r in routes)}")
 
-    # Step 6: Classify or reuse POIs
+    # Step 6: Extract buildings
+    buildings_path = CITYPACK_DIR / "akron_buildings.json"
+    if osm_path.exists():
+        print("[6/8] Extracting building footprints from OSM...")
+        origin_lat = (AKRON_BOUNDS["south"] + AKRON_BOUNDS["north"]) / 2.0
+        origin_lon = (AKRON_BOUNDS["west"] + AKRON_BOUNDS["east"]) / 2.0
+        buildings = extract_buildings(osm_path, origin_lat, origin_lon)
+        export_buildings(buildings, buildings_path)
+    elif buildings_path.exists():
+        print(f"[6/8] Reusing cached buildings: {buildings_path}")
+        with open(buildings_path, "r") as f:
+            buildings = json.load(f).get("buildings", [])
+    else:
+        print("[6/8] No OSM or cached buildings available. Skipping.")
+        buildings = []
+    print(f"      Buildings: {len(buildings)}")
+
+    # Step 7: Classify or reuse POIs
     pois_path = CITYPACK_DIR / "akron_pois.json"
     if osm_path.exists():
-        print("[6/7] Classifying POIs from OSM...")
+        print("[7/8] Classifying POIs from OSM...")
         pois = classify_pois(osm_path)
         with open(pois_path, "w") as f:
             json.dump(pois, f, indent=2)
     else:
-        print(f"[6/7] Reusing cached POIs: {pois_path}")
+        print(f"[7/8] Reusing cached POIs: {pois_path}")
         with open(pois_path, "r") as f:
             pois = json.load(f)
     print(f"      POIs: {len(pois)}")
 
-    # Step 7: Export bundle
-    print("[7/7] Exporting Unreal bundle...")
-    manifest = export_bundle(CITYPACK_DIR, AKRON_BOUNDS, routes, pois)
+    # Step 8: Export bundle
+    print("[8/8] Exporting Unreal bundle...")
+    manifest = export_bundle(CITYPACK_DIR, AKRON_BOUNDS, routes, pois, buildings)
     with open(CITYPACK_DIR / "akron_semantic_manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
     print(f"      Manifest: {CITYPACK_DIR / 'akron_semantic_manifest.json'}")

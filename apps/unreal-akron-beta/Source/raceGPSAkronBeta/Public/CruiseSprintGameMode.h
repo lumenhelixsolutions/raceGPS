@@ -114,6 +114,12 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|GameMode")
     TSubclassOf<class ANeonHUD> NeonHUDClass;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|World")
+    TSubclassOf<class ABuildingMeshGenerator> BuildingGeneratorClass;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|World")
+    TSubclassOf<class AStreetFurnitureSpawner> FurnitureSpawnerClass;
+
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronRouteSpline> LoadedRoutes;
 
@@ -184,6 +190,7 @@ protected:
     float WorldOriginLon = -81.52f;
 
     void LoadCityData();
+    bool IsVersionCompatible(const FString& CityVersion) const;
     void SpawnPlayerAtStart();
     void SpawnRouteSpline();
     void SpawnCheckpoints();
