@@ -7,6 +7,7 @@
 #include "PauseMenuWidget.h"
 #include "RaceScoringSystem.h"
 #include "RaceReplayManager.h"
+#include "LeaderboardSystem.h"
 #include "MinimapWidget.h"
 #include "CompassWidget.h"
 #include "DeveloperConsole.h"
@@ -36,6 +37,11 @@ void ACruiseSprintGameMode::StartPlay()
     if (!ReplayManager)
     {
         ReplayManager = NewObject<URaceReplayManager>(this);
+    }
+
+    if (!LeaderboardSystem)
+    {
+        LeaderboardSystem = NewObject<ULeaderboardSystem>(this);
     }
 
     LoadCityData();
@@ -307,6 +313,12 @@ void ACruiseSprintGameMode::FinishRace()
 {
     CurrentState = ECruiseSprintState::Finished;
 
+    FString RouteId;
+    if (LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+    {
+        RouteId = LoadedRoutes[SelectedRouteIndex].RouteId;
+    }
+
     if (ScoringSystem)
     {
         FRaceScore Score = ScoringSystem->CalculateFinalScore(ElapsedTime);
@@ -315,17 +327,35 @@ void ACruiseSprintGameMode::FinishRace()
             Score.FinalTime, *Score.Medal);
 
         UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance());
-        if (GI && LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+        if (GI && !RouteId.IsEmpty())
         {
-            GI->UpdateBestTime(LoadedRoutes[SelectedRouteIndex].RouteId, Score.FinalTime);
+            GI->UpdateBestTime(RouteId, Score.FinalTime);
+        }
+
+        // Add leaderboard entry
+        if (LeaderboardSystem && !RouteId.IsEmpty())
+        {
+            if (!LeaderboardSystem->HasLeaderboard(RouteId))
+            {
+                LeaderboardSystem->SeedDefaultEntries(RouteId, GoldTimeSeconds, SilverTimeSeconds, BronzeTimeSeconds);
+            }
+
+            FLeaderboardEntry Entry;
+            Entry.PlayerName = TEXT("Player");
+            Entry.TimeSeconds = Score.FinalTime;
+            Entry.Medal = Score.Medal;
+            Entry.Date = FDateTime::Now().ToString(TEXT("%Y-%m-%d"));
+            Entry.VehicleUsed = TEXT("Sedan");
+            Entry.Collisions = Score.Collisions;
+            Entry.bIsPlayer = true;
+            LeaderboardSystem->AddEntry(RouteId, Entry);
         }
     }
 
     // Save replay if it's the best
-    if (ReplayManager && LoadedRoutes.Num() > 0 && SelectedRouteIndex < LoadedRoutes.Num())
+    if (ReplayManager && !RouteId.IsEmpty())
     {
         ReplayManager->EndRaceRecording();
-        FString RouteId = LoadedRoutes[SelectedRouteIndex].RouteId;
 
         UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance());
         if (GI)

@@ -133,6 +133,9 @@ public:
     TObjectPtr<class URaceReplayManager> ReplayManager;
 
     UPROPERTY()
+    TObjectPtr<class ULeaderboardSystem> LeaderboardSystem;
+
+    UPROPERTY()
     TObjectPtr<class AGhostVehicle> BestGhost;
 
 protected:
