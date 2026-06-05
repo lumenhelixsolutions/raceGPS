@@ -9,6 +9,7 @@
 #include "MinimapWidget.h"
 #include "CompassWidget.h"
 #include "DeveloperConsole.h"
+#include "GhostVehicle.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -162,6 +163,15 @@ void ACruiseSprintGameMode::SpawnRouteSpline()
     {
         RouteActor->RouteId = Route.RouteId;
         RouteActor->BuildSplineFromWaypoints(WorldWaypoints);
+    }
+
+    // Spawn ghost car
+    AGhostVehicle* Ghost = GetWorld()->SpawnActor<AGhostVehicle>(
+        AGhostVehicle::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+    if (Ghost)
+    {
+        Ghost->SetRouteWaypoints(WorldWaypoints);
+        Ghost->StartGhostRun(CountdownDuration + 2.0f);
     }
 }
 

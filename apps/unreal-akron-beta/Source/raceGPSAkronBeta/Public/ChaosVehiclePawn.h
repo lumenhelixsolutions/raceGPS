@@ -4,6 +4,8 @@
 #include "WheeledVehiclePawn.h"
 #include "ChaosVehiclePawn.generated.h"
 
+class UVehicleTuningData;
+
 UCLASS()
 class RACEGPSAKRONBETA_API AChaosVehiclePawn : public AWheeledVehiclePawn
 {
@@ -34,6 +36,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
     void ToggleCamera();
 
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
+    float GetSpeedKmh() const;
+
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
+    float GetEngineRPM() const;
+
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
+    int32 GetCurrentGear() const;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Vehicle")
+    TObjectPtr<UVehicleTuningData> TuningData;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Vehicle")
     float MaxSpeedKmh = 200.0f;
 
@@ -59,6 +73,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Components")
     TObjectPtr<class UArrowComponent> Arrow;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Components")
+    TObjectPtr<class UVehicleAudioComponent> AudioComponent;
+
     UFUNCTION()
     void OnVehicleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
                       UPrimitiveComponent* OtherComp, FVector NormalImpulse,
@@ -73,4 +90,6 @@ private:
 
     void UpdateCameraView();
     void InitChaosVehicleMovement();
+    void ApplyTuningData();
+    void SetupWheel(int32 WheelIndex, const struct FWheelTuning& Wheel);
 };
