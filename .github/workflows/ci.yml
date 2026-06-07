@@ -1,0 +1,53 @@
+name: CI — Python Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Pytest (Python 3.12, Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          if (Test-Path tools/akron-semantic-compiler/requirements.txt) {
+            python -m pip install -r tools/akron-semantic-compiler/requirements.txt
+          }
+          if (Test-Path tools/universal-city-compiler/requirements.txt) {
+            python -m pip install -r tools/universal-city-compiler/requirements.txt
+          }
+          if (Test-Path apps/semantic-map-server/requirements.txt) {
+            python -m pip install -r apps/semantic-map-server/requirements.txt
+          }
+        shell: pwsh
+
+      - name: Run pytest
+        run: python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-results-windows
+          path: test-results.xml
