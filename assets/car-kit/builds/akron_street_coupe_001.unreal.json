@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "car_id": "rgps_akron_coupe_001",
+  "display_name": "Akron Street Coupe",
+  "content_paths": {
+    "skeletal_mesh": "/Game/RaceGPS/Vehicles/Base/SK_rgps_akron_coupe_001",
+    "materials": [
+      "/Game/RaceGPS/Vehicles/Materials/body",
+      "/Game/RaceGPS/Vehicles/Materials/glass",
+      "/Game/RaceGPS/Vehicles/Materials/underglow"
+    ],
+    "parts": [
+      "/Game/RaceGPS/Vehicles/Parts/kit_street_front_01",
+      "/Game/RaceGPS/Vehicles/Parts/kit_street_rear_01",
+      "/Game/RaceGPS/Vehicles/Parts/kit_street_side_01",
+      "/Game/RaceGPS/Vehicles/Parts/ducktail_01",
+      "/Game/RaceGPS/Vehicles/Parts/five_spoke_01",
+      "/Game/RaceGPS/Vehicles/Parts/vented_01"
+    ]
+  },
+  "blueprint_class": "/Game/RaceGPS/Vehicles/Blueprints/BP_rgps_akron_coupe_001",
+  "physics_preset": "arcade_sprint"
+}

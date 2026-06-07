@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "car_id": "rgps_akron_coupe_001",
+  "display_name": "Akron Street Coupe",
+  "base_chassis": "rgps_chassis_4w_sport",
+  "body_style": "coupe",
+  "kit": "street",
+  "wheelbase_m": 2.65,
+  "track_width_m": 1.62,
+  "mass_kg": 1420,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    -0.18
+  ],
+  "visual_parts": {
+    "front_bumper": "kit_street_front_01",
+    "rear_bumper": "kit_street_rear_01",
+    "side_skirts": "kit_street_side_01",
+    "spoiler": "ducktail_01",
+    "wheels": "five_spoke_01",
+    "hood": "vented_01"
+  },
+  "materials": {
+    "body": {
+      "base_color": "#111827",
+      "metallic": 0.7,
+      "roughness": 0.24,
+      "clearcoat": 0.9
+    },
+    "glass": {
+      "tint": 0.35
+    },
+    "underglow": {
+      "enabled": true,
+      "color": "#00E5FF"
+    }
+  },
+  "decals": {
+    "race_number": "13",
+    "stripe": "center_dual_01",
+    "logo": "racegps_side_small"
+  },
+  "physics_preset": "arcade_sprint",
+  "validation": {
+    "requires_four_wheels": true,
+    "requires_named_bones": true,
+    "max_faces": 100000,
+    "export_format": "fbx"
+  },
+  "_computed": {
+    "total_parts": 6,
+    "has_underglow": true,
+    "is_pursuit": false
+  }
+}

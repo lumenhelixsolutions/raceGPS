@@ -1,0 +1,14 @@
+{
+  "make": "raceGPS",
+  "model": "AkronStreetCoupe",
+  "generation": 1,
+  "number_of_wheels": 4,
+  "blueprint_class": "/Game/Carla/Blueprints/Vehicles/RaceGPS/BP_rgps_akron_coupe_001",
+  "skeletal_mesh": "/Game/RaceGPS/Vehicles/Base/SK_rgps_akron_coupe_001",
+  "wheel_blueprints": {
+    "front_left": "BP_RGPS_Wheel_Front",
+    "front_right": "BP_RGPS_Wheel_Front",
+    "rear_left": "BP_RGPS_Wheel_Rear",
+    "rear_right": "BP_RGPS_Wheel_Rear"
+  }
+}

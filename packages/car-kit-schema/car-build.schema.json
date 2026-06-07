@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lumenhelixsolutions.github.io/racegps/schemas/car-build.schema.json",
+  "title": "raceGPS Car Build Schema",
+  "description": "Semantic schema for raceGPS vehicle configurations. Used by garageGPS editor and validation pipeline.",
+  "type": "object",
+  "required": ["schema_version", "car_id", "display_name", "base_chassis", "visual_parts", "materials", "physics_preset"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "car_id": {
+      "type": "string",
+      "pattern": "^rgps_[a-z_0-9]+$"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "base_chassis": {
+      "type": "string",
+      "enum": ["rgps_chassis_4w_sport", "rgps_chassis_4w_sedan", "rgps_chassis_4w_hatch"]
+    },
+    "body_style": {
+      "type": "string",
+      "enum": ["coupe", "sedan", "hatchback", "suv", "truck"]
+    },
+    "kit": {
+      "type": "string",
+      "enum": ["stock", "street", "sprint", "drift", "pursuit"]
+    },
+    "wheelbase_m": {
+      "type": "number",
+      "minimum": 1.5,
+      "maximum": 4.0
+    },
+    "track_width_m": {
+      "type": "number",
+      "minimum": 1.0,
+      "maximum": 2.5
+    },
+    "mass_kg": {
+      "type": "number",
+      "minimum": 500,
+      "maximum": 5000
+    },
+    "center_of_mass": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "visual_parts": {
+      "type": "object",
+      "properties": {
+        "front_bumper": { "type": "string" },
+        "rear_bumper": { "type": "string" },
+        "side_skirts": { "type": "string" },
+        "spoiler": { "type": "string" },
+        "wheels": { "type": "string" },
+        "hood": { "type": "string" }
+      }
+    },
+    "materials": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "base_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "metallic": { "type": "number", "minimum": 0, "maximum": 1 },
+            "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+            "clearcoat": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "glass": {
+          "type": "object",
+          "properties": {
+            "tint": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "underglow": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+          }
+        }
+      }
+    },
+    "decals": {
+      "type": "object",
+      "properties": {
+        "race_number": { "type": "string", "pattern": "^[0-9]{1,3}$" },
+        "stripe": { "type": "string" },
+        "logo": { "type": "string" }
+      }
+    },
+    "physics_preset": {
+      "type": "string",
+      "enum": ["arcade_street", "arcade_sprint", "arcade_drift", "arcade_pursuit", "arcade_heavy"]
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "requires_four_wheels": { "type": "boolean" },
+        "requires_named_bones": { "type": "boolean" },
+        "max_faces": { "type": "integer", "minimum": 1000, "maximum": 200000 },
+        "export_format": { "type": "string", "enum": ["fbx", "glb"] }
+      }
+    }
+  }
+}
