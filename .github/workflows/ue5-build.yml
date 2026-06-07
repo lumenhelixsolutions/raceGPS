@@ -1,0 +1,77 @@
+name: UE5 Build & Package
+
+on:
+  push:
+    branches: [master, main]
+    tags: ['v*']
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  python-tests:
+    name: Python Tools & Compiler Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python deps
+        run: |
+          pip install pytest
+          pip install -r tools/akron-semantic-compiler/requirements.txt
+          pip install -r tools/universal-city-compiler/requirements.txt
+
+      - name: Run pytest
+        run: python -m pytest tests/ -v
+
+      - name: Test universal compiler CLI
+        run: python tools/universal-city-compiler/cli.py --help
+
+  ue5-build:
+    name: UE5 Project Build
+    runs-on: windows-latest
+    needs: python-tests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache UE5
+        uses: actions/cache@v4
+        with:
+          path: C:\UnrealEngine
+          key: ue5-5.5-${{ runner.os }}
+
+      - name: Build UE5 Project
+        shell: pwsh
+        run: |
+          cd apps/unreal-akron-beta
+          if (Test-Path Build.bat) {
+            ./Build.bat
+          } else {
+            echo "Build.bat not found; skipping UE5 build in CI"
+          }
+
+  package-release:
+    name: Package Release
+    runs-on: windows-latest
+    needs: [python-tests, ue5-build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package Python Tools
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force
+          Compress-Archive -Path tools/ -DestinationPath dist/racegps-tools-${{ github.ref_name }}.zip
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

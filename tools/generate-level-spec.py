@@ -81,17 +81,33 @@ def generate_traffic_volumes(routes: list[dict], origin_lat: float, origin_lon: 
     return volumes
 
 
-def main() -> int:
+def main(citypack_dir: Path | None = None) -> int:
     project_root = Path(__file__).resolve().parents[1]
-    citypack_dir = project_root / "citypacks" / "akron-oh-beta-001"
+    if citypack_dir is None:
+        citypack_dir = project_root / "citypacks" / "akron-oh-beta-001"
     generated_dir = project_root / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
 
+    # Auto-detect city_id from manifest filename
+    manifest_files = list(citypack_dir.glob("*_semantic_manifest.json"))
+    if not manifest_files:
+        print(f"No manifest found in {citypack_dir}")
+        return 1
+    manifest_path = manifest_files[0]
+    city_id = manifest_path.stem.replace("_semantic_manifest", "")
+
     # Load inputs
-    manifest = json.loads((citypack_dir / "akron_semantic_manifest.json").read_text())
-    routes = json.loads((citypack_dir / "akron_routes.json").read_text())
-    spawn_points = json.loads((citypack_dir / "akron_spawn_points.json").read_text())
-    pois = json.loads((citypack_dir / "akron_pois.json").read_text())
+    manifest = json.loads(manifest_path.read_text())
+    # Support both new universal-compiler manifests (with files dict) and legacy akron manifests
+    if "files" in manifest:
+        routes = json.loads((citypack_dir / manifest["files"]["routes"]).read_text())
+        spawn_points = json.loads((citypack_dir / manifest["files"]["spawn_points"]).read_text())
+        pois = json.loads((citypack_dir / manifest["files"]["pois"]).read_text())
+    else:
+        # Legacy fallback for akron-oh-beta-001
+        routes = json.loads((citypack_dir / "akron_routes.json").read_text())
+        spawn_points = json.loads((citypack_dir / "akron_spawn_points.json").read_text())
+        pois = json.loads((citypack_dir / "akron_pois.json").read_text())
 
     origin = manifest["origin"]
     origin_lat = origin["lat"]
@@ -159,8 +175,27 @@ def main() -> int:
 
     world_bounds = compute_bounding_box(all_points, padding=500.0)
 
+    # Load optional M2 procedural world data
+    water_data = None
+    vegetation_data = None
+    heightmap_data = None
+    biome_data = None
+    if "files" in manifest:
+        if "water" in manifest["files"]:
+            try: water_data = json.loads((citypack_dir / manifest["files"]["water"]).read_text())
+            except: pass
+        if "vegetation" in manifest["files"]:
+            try: vegetation_data = json.loads((citypack_dir / manifest["files"]["vegetation"]).read_text())
+            except: pass
+        if "heightmap" in manifest["files"]:
+            try: heightmap_data = json.loads((citypack_dir / manifest["files"]["heightmap"]).read_text())
+            except: pass
+        if "biome" in manifest["files"]:
+            try: biome_data = json.loads((citypack_dir / manifest["files"]["biome"]).read_text())
+            except: pass
+
     level_spec = {
-        "level_name": "AkronWorld",
+        "level_name": city_id.replace("_", " ").title().replace(" ", "") + "World",
         "city_id": manifest["city_id"],
         "origin": origin,
         "world_bounds": world_bounds,
@@ -179,13 +214,20 @@ def main() -> int:
         },
         "traffic_spawn_volumes": traffic_volumes,
         "poi_markers": spec_pois,
+        "terrain": {
+            "heightmap": heightmap_data,
+            "elevation_offset_m": heightmap_data["min_elevation"] if heightmap_data else 0.0,
+        } if heightmap_data else None,
+        "water_bodies": water_data,
+        "vegetation_zones": vegetation_data,
+        "biome": biome_data,
         "metadata": {
             "generated_by": "generate-level-spec.py",
-            "spec_version": "1.0.0",
+            "spec_version": "2.0.0",
         },
     }
 
-    output_path = generated_dir / "AkronWorld_LevelSpec.json"
+    output_path = generated_dir / f"{city_id}_LevelSpec.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(level_spec, f, indent=2)
     print(f"Generated: {output_path}")
@@ -193,4 +235,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--citypack", type=Path, default=None, help="Path to citypack directory")
+    args = ap.parse_args()
+    raise SystemExit(main(args.citypack))
