@@ -27,7 +27,9 @@ public class raceGPSAkronBeta : ModuleRules
             "RHI",
             "ProceduralMeshComponent",
             "OnlineSubsystem",
-            "OnlineSubsystemUtils"
+            "OnlineSubsystemUtils",
+            "Niagara",
+            "NiagaraCore"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]

@@ -1,0 +1,42 @@
+{
+  "name": "NS_Dust",
+  "type": "niagara_system",
+  "description": "Light dust and pollen particles for cloudy/dry conditions",
+  "emitter_count": 1,
+  "emitters": [
+    {
+      "name": "DustMotes",
+      "simulation_target": "GPU",
+      "max_particles": 5000,
+      "spawn_rate": 500,
+      "lifetime": [3.0, 8.0],
+      "velocity": [5, 0, 2],
+      "velocity_variation": [10, 10, 5],
+      "size": [0.05, 0.05, 0.05],
+      "color": [0.85, 0.8, 0.7, 0.3],
+      "turbulence": {
+        "enabled": true,
+        "strength": 5.0,
+        "frequency": 0.2
+      },
+      "collision": {
+        "enabled": false
+      },
+      "renderer": {
+        "type": "sprite",
+        "facing_mode": "camera"
+      }
+    }
+  ],
+  "parameters": {
+    "Intensity": {
+      "type": "float",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "spawn_conditions": {
+    "weather_types": ["Cloudy", "Clear"]
+  }
+}

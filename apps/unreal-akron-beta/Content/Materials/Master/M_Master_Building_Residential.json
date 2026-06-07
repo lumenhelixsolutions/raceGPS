@@ -1,0 +1,17 @@
+{
+  "name": "M_Master_Building_Residential",
+  "category": "building",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.75,
+      0.7,
+      0.6
+    ],
+    "roughness": 0.75,
+    "metallic": 0.0,
+    "blend_mode": "Opaque"
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

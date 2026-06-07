@@ -1,0 +1,61 @@
+{
+  "name": "NS_Rain",
+  "type": "niagara_system",
+  "description": "Heavy rain particles with collision on ground and vehicles",
+  "carla_compatible": false,
+  "emitter_count": 2,
+  "emitters": [
+    {
+      "name": "RainDrops",
+      "simulation_target": "GPU",
+      "max_particles": 50000,
+      "spawn_rate": 10000,
+      "lifetime": [0.5, 1.2],
+      "velocity": [0, 0, -800],
+      "velocity_variation": [50, 50, 100],
+      "size": [0.3, 0.3, 2.0],
+      "color": [0.7, 0.75, 0.8, 0.6],
+      "collision": {
+        "enabled": true,
+        "mode": "kill",
+        "response": "spawn_splash"
+      },
+      "renderer": {
+        "type": "ribbon",
+        "ribbon_width": 0.05,
+        "facing_mode": "velocity"
+      }
+    },
+    {
+      "name": "GroundSplash",
+      "simulation_target": "GPU",
+      "max_particles": 5000,
+      "spawn_rate": 0,
+      "lifetime": [0.1, 0.3],
+      "size": [0.5, 0.5, 0.5],
+      "color": [0.8, 0.8, 0.85, 0.4],
+      "collision": {
+        "enabled": false
+      },
+      "renderer": {
+        "type": "sprite",
+        "facing_mode": "camera"
+      }
+    }
+  ],
+  "parameters": {
+    "Intensity": {
+      "type": "float",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 2.0
+    },
+    "WindDirection": {
+      "type": "vector",
+      "default": [0, 0, 0]
+    }
+  },
+  "spawn_conditions": {
+    "weather_types": ["Rain", "HeavyRain", "Storm"]
+  }
+}

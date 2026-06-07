@@ -1,0 +1,17 @@
+{
+  "name": "M_Master_Vehicle_LicensePlate",
+  "category": "vehicle",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.9,
+      0.9,
+      0.9
+    ],
+    "roughness": 0.6,
+    "metallic": 0.0,
+    "blend_mode": "Opaque"
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

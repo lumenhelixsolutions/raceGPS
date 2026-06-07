@@ -1,0 +1,108 @@
+{
+  "_comment": "CARLA-style material slot mapping for all vehicle classes. Key = slot name, Value = master material path.",
+  "version": "0.2.0",
+  "slots": {
+    "Bodywork": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Paint",
+      "description": "Main body panels, paintable",
+      "parameters": {
+        "BaseColor": [0.5, 0.5, 0.5],
+        "Metallic": 0.6,
+        "Roughness": 0.3,
+        "ClearCoat": 1.0
+      }
+    },
+    "Glass_Ext": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Glass_Ext",
+      "description": "External windshield and windows",
+      "parameters": {
+        "BaseColor": [0.05, 0.05, 0.05],
+        "Transmission": 0.95,
+        "Roughness": 0.02
+      }
+    },
+    "Glass_Int": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Glass_Int",
+      "description": "Internal glass surfaces",
+      "parameters": {
+        "BaseColor": [0.1, 0.1, 0.1],
+        "Transmission": 0.85,
+        "Roughness": 0.05
+      }
+    },
+    "Lights": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Lights",
+      "description": "Headlights, taillights, turn signals",
+      "parameters": {
+        "BaseColor": [1.0, 0.9, 0.6],
+        "Emissive": 5.0,
+        "Roughness": 0.2
+      }
+    },
+    "LicensePlate": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_LicensePlate",
+      "description": "Front and rear license plates",
+      "parameters": {
+        "BaseColor": [0.9, 0.9, 0.9],
+        "Roughness": 0.6
+      }
+    },
+    "Wheel": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Rubber",
+      "description": "Tire rubber and rim",
+      "parameters": {
+        "BaseColor": [0.08, 0.08, 0.08],
+        "Roughness": 0.9
+      }
+    },
+    "Chassis": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Chrome",
+      "description": "Exhaust, trim, door handles",
+      "parameters": {
+        "BaseColor": [0.8, 0.8, 0.8],
+        "Metallic": 1.0,
+        "Roughness": 0.05
+      }
+    },
+    "Interior": {
+      "master_material": "/Game/Materials/M_Master_Vehicle_Paint",
+      "description": "Dashboard, seats (optional)",
+      "parameters": {
+        "BaseColor": [0.3, 0.3, 0.3],
+        "Roughness": 0.7
+      }
+    }
+  },
+  "classes": {
+    "Sedan": {
+      "poly_budget": 25000,
+      "wheel_count": 4,
+      "required_slots": ["Bodywork", "Glass_Ext", "Wheel", "Lights"],
+      "optional_slots": ["Glass_Int", "LicensePlate", "Chassis", "Interior"]
+    },
+    "Sports": {
+      "poly_budget": 30000,
+      "wheel_count": 4,
+      "required_slots": ["Bodywork", "Glass_Ext", "Wheel", "Lights", "Chassis"],
+      "optional_slots": ["Glass_Int", "LicensePlate", "Interior"]
+    },
+    "Truck": {
+      "poly_budget": 35000,
+      "wheel_count": 4,
+      "required_slots": ["Bodywork", "Glass_Ext", "Wheel", "Lights", "Chassis"],
+      "optional_slots": ["Glass_Int", "LicensePlate", "Interior"]
+    },
+    "SUV": {
+      "poly_budget": 28000,
+      "wheel_count": 4,
+      "required_slots": ["Bodywork", "Glass_Ext", "Wheel", "Lights"],
+      "optional_slots": ["Glass_Int", "LicensePlate", "Chassis", "Interior"]
+    },
+    "Hatchback": {
+      "poly_budget": 22000,
+      "wheel_count": 4,
+      "required_slots": ["Bodywork", "Glass_Ext", "Wheel", "Lights"],
+      "optional_slots": ["Glass_Int", "LicensePlate", "Chassis", "Interior"]
+    }
+  }
+}

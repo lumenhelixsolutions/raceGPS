@@ -1,0 +1,18 @@
+{
+  "name": "M_Master_Road_Marking",
+  "category": "road",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.9,
+      0.9,
+      0.9
+    ],
+    "roughness": 0.7,
+    "metallic": 0.0,
+    "blend_mode": "Masked",
+    "opacity_mask": true
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

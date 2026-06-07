@@ -69,10 +69,38 @@ protected:
     UPROPERTY()
     UExponentialHeightFogComponent* FogComponent;
 
+    // Niagara weather FX (preferred over Cascade in UE5)
+    UPROPERTY()
+    class UNiagaraComponent* NiagaraRain;
+
+    UPROPERTY()
+    class UNiagaraComponent* NiagaraSnow;
+
+    UPROPERTY()
+    class UNiagaraComponent* NiagaraDust;
+
+    UPROPERTY()
+    class UNiagaraComponent* NiagaraStorm;
+
+    // Niagara system references (loaded from Content/)
+    UPROPERTY(EditDefaultsOnly, Category = "Weather|Niagara")
+    TSoftObjectPtr<class UNiagaraSystem> NiagaraRainAsset;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Weather|Niagara")
+    TSoftObjectPtr<class UNiagaraSystem> NiagaraSnowAsset;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Weather|Niagara")
+    TSoftObjectPtr<class UNiagaraSystem> NiagaraDustAsset;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Weather|Niagara")
+    TSoftObjectPtr<class UNiagaraSystem> NiagaraStormAsset;
+
     float TransitionAlpha = 0.0f;
     EWeatherType TargetWeather = EWeatherType::Clear;
     FTimerHandle CycleTimer;
 
     void OnCycleTimer();
     void UpdateEffects(float DeltaTime);
+    void UpdateNiagaraEffects(EWeatherType Weather);
+    void SpawnNiagaraIfNeeded();
 };

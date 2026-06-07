@@ -1,0 +1,17 @@
+{
+  "name": "M_Master_Decal_RoadWear",
+  "category": "decal",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.4,
+      0.4,
+      0.4
+    ],
+    "roughness": 0.9,
+    "metallic": 0.0,
+    "blend_mode": "Translucent"
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

@@ -24,6 +24,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Time")
     float TimeScale = 1.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
+    bool bUseSkyAtmosphere = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
+    bool bUseVolumetricClouds = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
+    TSoftObjectPtr<class UTexture2D> HDRIEnvironmentMap;
+
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Time")
     void SetTimeOfDay(float Hour);
 
@@ -45,13 +54,22 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Time")
     TObjectPtr<class UStaticMeshComponent> SkySphere;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Atmosphere")
+    TObjectPtr<class USkyAtmosphereComponent> SkyAtmosphere;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Atmosphere")
+    TObjectPtr<class UVolumetricCloudComponent> VolumetricClouds;
+
 protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
     void UpdateSunRotation();
     void UpdateSkyColor();
+    void UpdateSkyAtmosphere();
+    void UpdateVolumetricClouds();
     FLinearColor GetSkyColor(float Hour) const;
+    float GetSunElevation() const;
 
     float CurrentTimeOfDay = 12.0f;
     float DayProgress = 0.0f;

@@ -1,0 +1,18 @@
+{
+  "name": "M_Master_Vehicle_Glass_Ext",
+  "category": "vehicle",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.05,
+      0.05,
+      0.05
+    ],
+    "roughness": 0.02,
+    "metallic": 0.0,
+    "transmission": 0.95,
+    "blend_mode": "Translucent"
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

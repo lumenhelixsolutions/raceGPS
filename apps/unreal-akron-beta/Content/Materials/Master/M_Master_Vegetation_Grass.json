@@ -1,0 +1,19 @@
+{
+  "name": "M_Master_Vegetation_Grass",
+  "category": "vegetation",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.15,
+      0.35,
+      0.08
+    ],
+    "roughness": 0.8,
+    "metallic": 0.0,
+    "subsurface": 0.5,
+    "blend_mode": "Masked",
+    "opacity_mask": true
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

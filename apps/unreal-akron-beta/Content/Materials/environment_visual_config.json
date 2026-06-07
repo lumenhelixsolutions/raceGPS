@@ -1,0 +1,113 @@
+{
+  "_comment": "Environment visual configuration per biome. Consumed by C++ procedural generators.",
+  "version": "0.2.0",
+  "biomes": {
+    "urban": {
+      "roads": {
+        "asphalt": "M_Master_Road_Asphalt",
+        "marking_solid": "M_Master_Road_Marking",
+        "marking_dashed": "M_Master_Road_Marking",
+        "curb": "M_Master_Road_Curb",
+        "sidewalk": "M_Master_Road_Sidewalk",
+        "decal_wear": "M_Master_Decal_RoadWear",
+        "decal_oil": "M_Master_Decal_Oil"
+      },
+      "buildings": {
+        "facade_weights": {
+          "Glass": 0.3,
+          "Concrete": 0.25,
+          "Brick": 0.2,
+          "Industrial": 0.15,
+          "Residential": 0.1
+        },
+        "height_variation": [0.8, 1.5],
+        "window_emissive_chance": 0.4,
+        "window_emissive_color": [0.9, 0.8, 0.6]
+      },
+      "vegetation": {
+        "grass_density": 0.3,
+        "tree_density": 0.1,
+        "grass_material": "M_Master_Vegetation_Grass",
+        "tree_material": "M_Master_Vegetation_Tree"
+      },
+      "lighting": {
+        "street_lamp_spacing_m": 30.0,
+        "street_lamp_color": [0.9, 0.8, 0.6],
+        "street_lamp_intensity": 500.0,
+        "building_window_lights": true
+      },
+      "water": {
+        "surface_material": "M_Master_Water_Surface",
+        "reflectivity": 0.7
+      }
+    },
+    "suburban": {
+      "roads": {
+        "asphalt": "M_Master_Road_Asphalt",
+        "marking_solid": "M_Master_Road_Marking",
+        "curb": "M_Master_Road_Curb",
+        "sidewalk": "M_Master_Road_Sidewalk"
+      },
+      "buildings": {
+        "facade_weights": {
+          "Brick": 0.4,
+          "Residential": 0.35,
+          "Concrete": 0.2,
+          "Glass": 0.05
+        },
+        "height_variation": [0.5, 1.0],
+        "window_emissive_chance": 0.6,
+        "window_emissive_color": [0.95, 0.85, 0.65]
+      },
+      "vegetation": {
+        "grass_density": 0.7,
+        "tree_density": 0.4,
+        "grass_material": "M_Master_Vegetation_Grass",
+        "tree_material": "M_Master_Vegetation_Tree"
+      },
+      "lighting": {
+        "street_lamp_spacing_m": 40.0,
+        "street_lamp_color": [0.85, 0.75, 0.55],
+        "street_lamp_intensity": 400.0,
+        "building_window_lights": true
+      },
+      "water": {
+        "surface_material": "M_Master_Water_Surface",
+        "reflectivity": 0.6
+      }
+    },
+    "industrial": {
+      "roads": {
+        "asphalt": "M_Master_Road_Asphalt",
+        "marking_solid": "M_Master_Road_Marking",
+        "curb": "M_Master_Road_Curb"
+      },
+      "buildings": {
+        "facade_weights": {
+          "Industrial": 0.6,
+          "Concrete": 0.3,
+          "Brick": 0.1
+        },
+        "height_variation": [0.6, 1.2],
+        "window_emissive_chance": 0.2,
+        "window_emissive_color": [0.8, 0.7, 0.5]
+      },
+      "vegetation": {
+        "grass_density": 0.15,
+        "tree_density": 0.05,
+        "grass_material": "M_Master_Vegetation_Grass",
+        "tree_material": "M_Master_Vegetation_Tree"
+      },
+      "lighting": {
+        "street_lamp_spacing_m": 50.0,
+        "street_lamp_color": [0.8, 0.7, 0.5],
+        "street_lamp_intensity": 600.0,
+        "building_window_lights": false
+      },
+      "water": {
+        "surface_material": "M_Master_Water_Surface",
+        "reflectivity": 0.5
+      }
+    }
+  }
+}

@@ -3,6 +3,9 @@
 #include "WeatherSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
 AWeatherSystem::AWeatherSystem()
@@ -17,11 +20,25 @@ AWeatherSystem::AWeatherSystem()
     RainParticles->SetupAttachment(RootComponent);
     SnowParticles->SetupAttachment(RootComponent);
     FogComponent->SetupAttachment(RootComponent);
+
+    // Niagara placeholders — will be spawned at BeginPlay if assets exist
+    NiagaraRain = nullptr;
+    NiagaraSnow = nullptr;
+    NiagaraDust = nullptr;
+    NiagaraStorm = nullptr;
+
+    // Default soft references for Niagara assets
+    NiagaraRainAsset = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/VFX/Weather/NS_Rain.NS_Rain")));
+    NiagaraSnowAsset = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/VFX/Weather/NS_Snow.NS_Snow")));
+    NiagaraDustAsset = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/VFX/Weather/NS_Dust.NS_Dust")));
+    NiagaraStormAsset = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/VFX/Weather/NS_Storm.NS_Storm")));
 }
 
 void AWeatherSystem::BeginPlay()
 {
     Super::BeginPlay();
+    SpawnNiagaraIfNeeded();
+
     if (bAutoCycle)
     {
         GetWorld()->GetTimerManager().SetTimer(CycleTimer, this, &AWeatherSystem::OnCycleTimer, CycleIntervalSeconds, true);
@@ -127,6 +144,7 @@ void AWeatherSystem::UpdateEffects(float DeltaTime)
         FogComponent->FogDensity = FMath::GetMappedRangeValueClamped(FVector2D(500.0f, 5000.0f), FVector2D(0.1f, 0.0f), VisibilityMeters);
     }
 
+    // Cascade fallback
     if (RainParticles)
     {
         RainParticles->SetVisibility(bRain);
@@ -136,8 +154,103 @@ void AWeatherSystem::UpdateEffects(float DeltaTime)
         SnowParticles->SetVisibility(bSnow);
     }
 
+    // Niagara primary
+    UpdateNiagaraEffects(TargetWeather);
+
     if (TransitionAlpha >= 1.0f)
     {
         CurrentWeather = TargetWeather;
     }
+}
+
+void AWeatherSystem::UpdateNiagaraEffects(EWeatherType Weather)
+{
+    auto SetNiagaraActive = [this](UNiagaraComponent* Comp, bool bActive)
+    {
+        if (!Comp) return;
+        Comp->SetVisibility(bActive);
+        if (bActive && !Comp->IsActive())
+        {
+            Comp->Activate();
+        }
+        else if (!bActive && Comp->IsActive())
+        {
+            Comp->Deactivate();
+        }
+    };
+
+    switch (Weather)
+    {
+    case EWeatherType::Clear:
+        SetNiagaraActive(NiagaraRain, false);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::Cloudy:
+        SetNiagaraActive(NiagaraRain, false);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, true);  // Light dust/pollen
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::Rain:
+        SetNiagaraActive(NiagaraRain, true);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::HeavyRain:
+        SetNiagaraActive(NiagaraRain, true);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::Fog:
+        SetNiagaraActive(NiagaraRain, false);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::Snow:
+        SetNiagaraActive(NiagaraRain, false);
+        SetNiagaraActive(NiagaraSnow, true);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, false);
+        break;
+    case EWeatherType::Storm:
+        SetNiagaraActive(NiagaraRain, false);
+        SetNiagaraActive(NiagaraSnow, false);
+        SetNiagaraActive(NiagaraDust, false);
+        SetNiagaraActive(NiagaraStorm, true);
+        break;
+    }
+}
+
+void AWeatherSystem::SpawnNiagaraIfNeeded()
+{
+    auto TrySpawn = [this](TSoftObjectPtr<UNiagaraSystem> Asset, UNiagaraComponent*& OutComp, const TCHAR* Name)
+    {
+        if (Asset.IsValid())
+        {
+            UNiagaraSystem* System = Asset.LoadSynchronous();
+            if (System)
+            {
+                OutComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+                    System, RootComponent, NAME_None,
+                    FVector::ZeroVector, FRotator::ZeroRotator,
+                    EAttachLocation::KeepRelativeOffset,
+                    false); // Auto destroy false — we manage lifetime
+                if (OutComp)
+                {
+                    OutComp->SetVisibility(false);
+                    OutComp->Deactivate();
+                }
+            }
+        }
+    };
+
+    TrySpawn(NiagaraRainAsset, NiagaraRain, TEXT("NiagaraRain"));
+    TrySpawn(NiagaraSnowAsset, NiagaraSnow, TEXT("NiagaraSnow"));
+    TrySpawn(NiagaraDustAsset, NiagaraDust, TEXT("NiagaraDust"));
+    TrySpawn(NiagaraStormAsset, NiagaraStorm, TEXT("NiagaraStorm"));
 }

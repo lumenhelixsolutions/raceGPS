@@ -1,0 +1,17 @@
+{
+  "name": "M_Master_Vehicle_Chrome",
+  "category": "vehicle",
+  "master_material": true,
+  "properties": {
+    "base_color": [
+      0.8,
+      0.8,
+      0.8
+    ],
+    "roughness": 0.05,
+    "metallic": 1.0,
+    "blend_mode": "Opaque"
+  },
+  "source": "raceGPS auto-generated",
+  "carla_compatible": true
+}

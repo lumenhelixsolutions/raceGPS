@@ -1,0 +1,50 @@
+{
+  "name": "NS_Snow",
+  "type": "niagara_system",
+  "description": "Falling snow with gentle turbulence and ground accumulation",
+  "emitter_count": 1,
+  "emitters": [
+    {
+      "name": "SnowFlakes",
+      "simulation_target": "GPU",
+      "max_particles": 30000,
+      "spawn_rate": 5000,
+      "lifetime": [2.0, 5.0],
+      "velocity": [0, 0, -100],
+      "velocity_variation": [30, 30, 50],
+      "size": [0.2, 0.2, 0.2],
+      "color": [0.95, 0.95, 1.0, 0.8],
+      "turbulence": {
+        "enabled": true,
+        "strength": 15.0,
+        "frequency": 0.5
+      },
+      "collision": {
+        "enabled": true,
+        "mode": "kill"
+      },
+      "renderer": {
+        "type": "sprite",
+        "facing_mode": "camera",
+        "material": "/Game/Materials/M_Master_Vegetation_Grass"
+      }
+    }
+  ],
+  "parameters": {
+    "Intensity": {
+      "type": "float",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 2.0
+    },
+    "WindTurbulence": {
+      "type": "float",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 3.0
+    }
+  },
+  "spawn_conditions": {
+    "weather_types": ["Snow"]
+  }
+}
