@@ -63,9 +63,25 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|LAN")
     TSubclassOf<class ULANSessionManager> LANManagerClass;
 
+    /** When true, Host/Refresh use Node backend (8787) instead of UE OnlineSubsystem LAN. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Backend")
+    bool bPreferNodeBackend = true;
+
 protected:
     UPROPERTY()
     TObjectPtr<class ULANSessionManager> LANManager;
+
+    UPROPERTY()
+    TObjectPtr<class URaceGPSBackendClient> BackendClient;
+
+    UFUNCTION()
+    void OnBackendSessionReady(bool bSuccess);
+
+    UFUNCTION()
+    void OnBackendRoomsListed(const FString& RoomsJson);
+
+    UFUNCTION()
+    void OnBackendConnected(bool bSuccess);
 
     UPROPERTY()
     TArray<FBlueprintSessionResult> FoundSessions;

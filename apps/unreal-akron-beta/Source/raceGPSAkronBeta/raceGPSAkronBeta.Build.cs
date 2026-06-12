@@ -29,7 +29,9 @@ public class raceGPSAkronBeta : ModuleRules
             "OnlineSubsystem",
             "OnlineSubsystemUtils",
             "Niagara",
-            "NiagaraCore"
+            "NiagaraCore",
+            "HTTP",
+            "WebSockets"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]

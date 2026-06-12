@@ -10,7 +10,7 @@ Milestone: Second Shippable Beta & Orchestration Entry (portfolio M10)
 ## Multiplayer
 
 - [x] Backend tests for room utils + HTTP/WS stack (`apps/backend/tests/`, `npm test`)
-- [ ] Wire UE5 LAN multiplayer UI to Node.js backend WebSocket
+- [x] Wire UE5 LAN multiplayer UI to Node.js backend WebSocket (`RaceGPSBackendClient`, `LANBrowserWidget`)
 
 ## Distribution prep
 

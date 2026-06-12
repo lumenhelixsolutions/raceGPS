@@ -11,8 +11,10 @@ Usage inside UE5 (Python Console):
 
 Usage outside UE5 (preview):
     python tools/ue5-import-level-spec.py
+    python tools/ue5-import-level-spec.py --spec generated/Cleveland5.0KmWorld_LevelSpec.json
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -77,8 +79,18 @@ def _add_spline_points(actor, points: list[dict], label: str):
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Import UE5 level spec JSON into editor")
+    parser.add_argument(
+        "--spec",
+        default="generated/AkronWorld_LevelSpec.json",
+        help="Path to level spec JSON (default: generated/AkronWorld_LevelSpec.json)",
+    )
+    args = parser.parse_args()
+
     script_dir = Path(__file__).resolve().parent
-    spec_path = script_dir.parent / "generated" / "AkronWorld_LevelSpec.json"
+    spec_path = Path(args.spec)
+    if not spec_path.is_absolute():
+        spec_path = script_dir.parent / spec_path
 
     if not spec_path.exists():
         print(f"ERROR: Level spec not found: {spec_path}")
