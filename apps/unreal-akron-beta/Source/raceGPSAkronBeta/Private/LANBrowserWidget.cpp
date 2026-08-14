@@ -33,6 +33,7 @@ void ULANBrowserWidget::NativeConstruct()
     {
         MaxPlayersSlider->OnValueChanged.AddDynamic(this, &ULANBrowserWidget::UpdateMaxPlayersDisplay);
         MaxPlayersSlider->SetValue(4.0f);
+        UpdateMaxPlayersDisplay(4.0f);
     }
 
     LANManager = NewObject<ULANSessionManager>(this);
@@ -54,8 +55,6 @@ void ULANBrowserWidget::NativeConstruct()
             BackendClient->CreateSession(TEXT("UE5-Driver"));
         }
     }
-
-    UpdateMaxPlayersDisplay();
 
     if (StatusText)
     {
@@ -191,7 +190,7 @@ void ULANBrowserWidget::OnHostComplete(bool bSuccess)
     }
 }
 
-void ULANBrowserWidget::UpdateMaxPlayersDisplay()
+void ULANBrowserWidget::UpdateMaxPlayersDisplay(float NewValue)
 {
     if (MaxPlayersText && MaxPlayersSlider)
     {

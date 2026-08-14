@@ -285,7 +285,7 @@ void ACruiseSprintGameMode::LoadCityData()
                 if (!IsVersionCompatible(CityVersion))
                 {
                     UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Citypack version %s may be incompatible with game %s"),
-                        *CityVersion, FString(RACEGPS_VERSION_STRING));
+                        *CityVersion, *FString(RACEGPS_VERSION_STRING));
                 }
                 else
                 {
@@ -710,7 +710,7 @@ void ACruiseSprintGameMode::CreateDefaultVehiclePresets()
         }
 
         // Differential
-        Preset->Differential.DifferentialType = EVehicleDifferential::LimitedSlip_4W;
+        Preset->Differential.DifferentialType = ERaceGPSDifferentialType::AllWheelDrive;
         Preset->Differential.FrontRearSplit = 0.5f;
         Preset->Differential.FrontLeftRightSplit = 0.5f;
         Preset->Differential.RearLeftRightSplit = 0.5f;
@@ -900,8 +900,8 @@ TObjectPtr<UVehicleTuningData> ACruiseSprintGameMode::BuildMergedVehicleTuning(U
         return nullptr;
     }
 
-    UVehicleTuningData** HandlingPresetPtr = HandlingModePresets.Find(HandlingMode);
-    UVehicleTuningData* HandlingPreset = HandlingPresetPtr ? *HandlingPresetPtr : nullptr;
+    TObjectPtr<UVehicleTuningData>* HandlingPresetPtr = HandlingModePresets.Find(HandlingMode);
+    UVehicleTuningData* HandlingPreset = HandlingPresetPtr ? HandlingPresetPtr->Get() : nullptr;
     if (!HandlingPreset)
     {
         return BasePreset;
@@ -910,8 +910,7 @@ TObjectPtr<UVehicleTuningData> ACruiseSprintGameMode::BuildMergedVehicleTuning(U
     const float BehaviorBlend = HandlingMode == TEXT("Simulation") ? 0.35f
         : (HandlingMode == TEXT("Drift") ? 0.85f : 0.6f);
 
-    UVehicleTuningData* Merged = NewObject<UVehicleTuningData>(this);
-    *Merged = *BasePreset;
+    UVehicleTuningData* Merged = NewObject<UVehicleTuningData>(this, UVehicleTuningData::StaticClass(), NAME_None, RF_NoFlags, BasePreset);
     Merged->DisplayName = FString::Printf(TEXT("%s / %s"), *BasePreset->DisplayName, *HandlingMode);
     Merged->Description = FString::Printf(TEXT("%s | %s"), *BasePreset->Description, *HandlingPreset->Description);
 
@@ -932,7 +931,7 @@ TObjectPtr<UVehicleTuningData> ACruiseSprintGameMode::BuildMergedVehicleTuning(U
     Merged->HandbrakeTorque = BlendValue(BasePreset->HandbrakeTorque, HandlingPreset->HandbrakeTorque, BehaviorBlend);
     Merged->DownForceCoefficient = BlendValue(BasePreset->DownForceCoefficient, HandlingPreset->DownForceCoefficient, BehaviorBlend * 0.6f);
     Merged->DownForceOffset = BlendValue(BasePreset->DownForceOffset, HandlingPreset->DownForceOffset, BehaviorBlend * 0.5f);
-    Merged->SteeringCurve = BlendValue(BasePreset->SteeringCurve, HandlingPreset->SteeringCurve, BehaviorBlend);
+    // SteeringCurve is a curve asset; keep the base preset curve rather than blending.
     Merged->AckermannAccuracy = BlendValue(BasePreset->AckermannAccuracy, HandlingPreset->AckermannAccuracy, BehaviorBlend * 0.7f);
     Merged->DriftAngleMax = BlendValue(BasePreset->DriftAngleMax, HandlingPreset->DriftAngleMax, BehaviorBlend);
     Merged->CounterSteerGain = BlendValue(BasePreset->CounterSteerGain, HandlingPreset->CounterSteerGain, BehaviorBlend);

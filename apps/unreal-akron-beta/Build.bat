@@ -1,6 +1,6 @@
 @echo off
 REM raceGPS Akron Beta — Windows Build Script
-REM Requires: Unreal Engine 5.5, Visual Studio 2022, Windows SDK
+REM Requires: Unreal Engine 5.5+, Visual Studio 2022, Windows SDK
 
 setlocal enabledelayedexpansion
 
@@ -40,13 +40,15 @@ if not exist "%UMAP%" (
 )
 
 REM Find UE5 engine
-if exist "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat" (
+if exist "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" (
+    set UE5_BUILD="C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat"
+) else if exist "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat" (
     set UE5_BUILD="C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat"
 ) else if exist "C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\Build.bat" (
     set UE5_BUILD="C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\Build.bat"
 ) else (
     echo ERROR: Unreal Engine 5 not found.
-    echo Please install UE5.5 via Epic Games Launcher or set UE5_BUILD manually.
+    echo Please install UE5.5+ via Epic Games Launcher or set UE5_BUILD manually.
     exit /b 1
 )
 
@@ -70,7 +72,10 @@ if errorlevel 1 (
 
 REM Step 3: Cook content
 echo [3/4] Cooking content for Windows...
-set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat"
+set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\RunUAT.bat"
+if not exist %UE5_RUNUAT% (
+    set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat"
+)
 if not exist %UE5_RUNUAT% (
     set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat"
 )

@@ -30,6 +30,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
     void SetHandbrakeInput(bool bActive);
 
+    UFUNCTION()
+    void HandbrakePressed();
+
+    UFUNCTION()
+    void HandbrakeReleased();
+
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
     void ResetVehicle();
 
@@ -69,6 +75,9 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "raceGPS|Camera")
     TArray<FTransform> CameraTransforms;
 
+    UFUNCTION(BlueprintPure, Category = "raceGPS|Vehicle")
+    class UVehicleAudioComponent* GetAudioComponent() const { return AudioComponent; }
+
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "raceGPS|Components")
     TObjectPtr<class USpringArmComponent> SpringArm;
@@ -100,5 +109,5 @@ private:
     void UpdateCameraView();
     void InitChaosVehicleMovement();
     void ApplyTuningData();
-    void SetupWheel(int32 WheelIndex, const struct FWheelTuning& Wheel);
+    void SetupWheel(class UChaosWheeledVehicleMovementComponent* WheeledComp, int32 WheelIndex, const struct FWheelTuning& Wheel);
 };

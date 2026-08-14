@@ -45,9 +45,8 @@ FPreflightSummary UPreflightSystem::GetSummary(const TArray<FPreflightCheck>& Ch
 FString UPreflightSystem::GetRecommendedGraphicsPreset()
 {
     // Determine preset based on GPU and RAM
-    FGenericMemoryStats MemStats;
-    FPlatformMemory::GetStats(MemStats);
-    int64 TotalRAM_MB = MemStats.AvailableVirtual / (1024 * 1024);
+    FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+    int64 TotalRAM_MB = static_cast<int64>(Stats.TotalPhysical / (1024 * 1024));
 
     FString GPUName = FPlatformMisc::GetPrimaryGPUBrand();
     GPUName = GPUName.ToLower();
@@ -148,7 +147,7 @@ FPreflightCheck UPreflightSystem::CheckOS()
 #if PLATFORM_WINDOWS
     FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
     Check.Status = EPreflightStatus::Pass;
-    Check.Detail = FString::Printf(TEXT("Windows detected. Total RAM: %.1f GB"), Stats.TotalPhysicalGB);
+    Check.Detail = FString::Printf(TEXT("Windows detected. Total RAM: %.1f GB"), static_cast<double>(Stats.TotalPhysicalGB));
 #else
     Check.Status = EPreflightStatus::Fail;
     Check.Detail = TEXT("Unsupported operating system");
@@ -222,7 +221,7 @@ FPreflightCheck UPreflightSystem::CheckGPU()
     Check.Description = TEXT("DirectX 12 compatible GPU required");
 
     FString GPUName = FPlatformMisc::GetPrimaryGPUBrand();
-    FString GPUDriver = FPlatformMisc::GetGPUDriverVersion();
+    FString GPUDriver = TEXT("Unknown");
 
     if (GPUName.IsEmpty() || GPUName == TEXT("Unknown"))
     {

@@ -52,7 +52,7 @@ UVehicleTuningData* UVehicleSelectionWidget::GetSelectedVehicle() const
     return nullptr;
 }
 
-void UVehicleSelectionWidget::OnVehicleSelected(const FString& SelectedItem, ESelectInfo::Type SelectionType)
+void UVehicleSelectionWidget::OnVehicleSelected(FString SelectedItem, ESelectInfo::Type SelectionType)
 {
     UpdateVehicleInfo();
 }

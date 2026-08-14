@@ -35,7 +35,7 @@ struct FVideoSettings
 };
 
 USTRUCT(BlueprintType)
-struct FAudioSettings
+struct FRaceGPSAudioSettings
 {
     GENERATED_BODY()
 
@@ -107,7 +107,7 @@ public:
     FVideoSettings Video;
 
     UPROPERTY(BlueprintReadWrite, Category = "raceGPS|Settings")
-    FAudioSettings Audio;
+    FRaceGPSAudioSettings Audio;
 
     UPROPERTY(BlueprintReadWrite, Category = "raceGPS|Settings")
     FControlSettings Controls;

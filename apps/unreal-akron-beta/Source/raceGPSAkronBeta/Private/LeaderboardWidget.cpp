@@ -70,7 +70,11 @@ void ULeaderboardWidget::PopulateEntries(const TArray<FLeaderboardEntry>& Entrie
         NameText->SetColorAndOpacity(Entry.bIsPlayer ? FLinearColor(0.0f, 0.9f, 1.0f) : FLinearColor::White);
         UHorizontalBoxSlot* NameSlot = Row->AddChildToHorizontalBox(NameText);
         NameSlot->SetPadding(FMargin(0.0f, 0.0f, 20.0f, 0.0f));
-        NameSlot->SetFillWidth(1.0f);
+        {
+            FSlateChildSize Size(ESlateSizeRule::Fill);
+            Size.Value = 1.0f;
+            NameSlot->SetSize(Size);
+        }
 
         // Time
         UTextBlock* TimeText = NewObject<UTextBlock>(this);

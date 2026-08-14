@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "WeatherSystem.generated.h"
 
 UENUM(BlueprintType)

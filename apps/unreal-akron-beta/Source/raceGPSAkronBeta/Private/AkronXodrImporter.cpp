@@ -5,8 +5,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "Math/UnrealMathUtility.h"
-#include "XmlParser/Public/XmlFile.h"
-#include "XmlParser/Public/XmlNode.h"
+#include "XmlFile.h"
+#include "XmlNode.h"
 
 const float EARTH_RADIUS_M = 6371000.0f;
 

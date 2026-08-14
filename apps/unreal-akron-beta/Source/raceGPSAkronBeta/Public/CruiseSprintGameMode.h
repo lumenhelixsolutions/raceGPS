@@ -48,6 +48,9 @@ public:
     UFUNCTION()
     void OnCheckpointReached(int32 CheckpointIndex);
 
+    UFUNCTION()
+    void OnVehicleCollision(float ImpactSpeedKmh);
+
     UFUNCTION(BlueprintPure, Category = "raceGPS|GameMode")
     ECruiseSprintState GetRaceState() const { return CurrentState; }
 
@@ -205,7 +208,6 @@ protected:
     void SpawnCheckpoints();
     void UpdateCountdown(float DeltaTime);
     void InitHUDWidgets();
-    void OnVehicleCollision(float ImpactSpeedKmh);
     void CreateDefaultVehiclePresets();
     void LoadHandlingModePresets();
     TObjectPtr<class UVehicleTuningData> BuildMergedVehicleTuning(class UVehicleTuningData* BaseVehiclePreset, const FString& HandlingMode);

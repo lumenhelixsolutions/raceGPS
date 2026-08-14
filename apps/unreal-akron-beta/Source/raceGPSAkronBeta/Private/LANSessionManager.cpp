@@ -74,7 +74,7 @@ void ULANSessionManager::FindSessions(int32 MaxResults)
     SessionSearch = MakeShareable(new FOnlineSessionSearch());
     SessionSearch->MaxSearchResults = MaxResults;
     SessionSearch->bIsLanQuery = true;
-    SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+    SessionSearch->QuerySettings.Set(FName(TEXT("SEARCHPRESENCE")), true, EOnlineComparisonOp::Equals);
 
     UWorld* World = GEngine->GetWorldFromContextObjectChecked(this);
     APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);

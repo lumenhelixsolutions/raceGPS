@@ -31,7 +31,7 @@ public:
     bool bUseVolumetricClouds = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
-    TSoftObjectPtr<class UTexture2D> HDRIEnvironmentMap;
+    TSoftObjectPtr<class UTextureCube> HDRIEnvironmentMap;
 
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Time")
     void SetTimeOfDay(float Hour);

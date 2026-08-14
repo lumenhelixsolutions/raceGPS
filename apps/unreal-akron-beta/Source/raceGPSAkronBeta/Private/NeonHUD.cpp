@@ -115,7 +115,9 @@ void ANeonHUD::DrawCountdown()
     }
 
     float TextScale = 5.0f;
-    FVector2D TextSize = Canvas->ClippedTextSize(LargeFont, TextScale, FText::FromString(CountStr));
+    float XL = 0.0f, YL = 0.0f;
+    Canvas->TextSize(LargeFont, CountStr, XL, YL, TextScale, TextScale);
+    FVector2D TextSize(XL, YL);
     float X = (Canvas->ClipX - TextSize.X) * 0.5f;
     float Y = (Canvas->ClipY - TextSize.Y) * 0.5f;
 
@@ -149,7 +151,9 @@ void ANeonHUD::DrawFinishedScreen()
     // Title
     float TitleScale = 2.5f;
     FString TitleStr = TEXT("RACE COMPLETE");
-    FVector2D TitleSize = Canvas->ClippedTextSize(LargeFont, TitleScale, FText::FromString(TitleStr));
+    float TitleXL = 0.0f, TitleYL = 0.0f;
+    Canvas->TextSize(LargeFont, TitleStr, TitleXL, TitleYL, TitleScale, TitleScale);
+    FVector2D TitleSize(TitleXL, TitleYL);
     float TitleX = (Canvas->ClipX - TitleSize.X) * 0.5f;
     float TitleY = Canvas->ClipY * 0.3f;
 
@@ -165,7 +169,9 @@ void ANeonHUD::DrawFinishedScreen()
 
     float MedalScale = 3.0f;
     FString MedalStr = FinishedMedal;
-    FVector2D MedalSize = Canvas->ClippedTextSize(LargeFont, MedalScale, FText::FromString(MedalStr));
+    float MedalXL = 0.0f, MedalYL = 0.0f;
+    Canvas->TextSize(LargeFont, MedalStr, MedalXL, MedalYL, MedalScale, MedalScale);
+    FVector2D MedalSize(MedalXL, MedalYL);
     float MedalX = (Canvas->ClipX - MedalSize.X) * 0.5f;
     float MedalY = TitleY + 80.0f;
 
@@ -176,7 +182,9 @@ void ANeonHUD::DrawFinishedScreen()
     // Time
     float TimeScale = 1.5f;
     FString TimeStr = FString::Printf(TEXT("Time: %s"), *FormatTime(FinishedTime));
-    FVector2D TimeSize = Canvas->ClippedTextSize(MainFont, TimeScale, FText::FromString(TimeStr));
+    float TimeXL = 0.0f, TimeYL = 0.0f;
+    Canvas->TextSize(MainFont, TimeStr, TimeXL, TimeYL, TimeScale, TimeScale);
+    FVector2D TimeSize(TimeXL, TimeYL);
     float TimeX = (Canvas->ClipX - TimeSize.X) * 0.5f;
     float TimeY = MedalY + 100.0f;
 
@@ -187,7 +195,9 @@ void ANeonHUD::DrawFinishedScreen()
     // Prompt
     float PromptScale = 1.0f;
     FString PromptStr = TEXT("Press R to Restart  |  Press Esc to Menu");
-    FVector2D PromptSize = Canvas->ClippedTextSize(MainFont, PromptScale, FText::FromString(PromptStr));
+    float PromptXL = 0.0f, PromptYL = 0.0f;
+    Canvas->TextSize(MainFont, PromptStr, PromptXL, PromptYL, PromptScale, PromptScale);
+    FVector2D PromptSize(PromptXL, PromptYL);
     float PromptX = (Canvas->ClipX - PromptSize.X) * 0.5f;
     float PromptY = TimeY + 60.0f;
 

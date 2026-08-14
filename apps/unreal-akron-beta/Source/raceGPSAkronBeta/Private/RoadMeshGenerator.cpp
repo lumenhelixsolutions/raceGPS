@@ -117,7 +117,7 @@ void ARoadMeshGenerator::GenerateRoadMesh(const FAkronRoadSegment& Segment, UPro
     TArray<FVector> Normals;
     TArray<FVector2D> UVs;
     TArray<FProcMeshTangent> Tangents;
-    TArray<FLinearColor> VertexColors;
+    TArray<FColor> VertexColors;
 
     Vertices.Reserve(NumPoints * 2);
     Triangles.Reserve((NumPoints - 1) * 6);
@@ -165,8 +165,8 @@ void ARoadMeshGenerator::GenerateRoadMesh(const FAkronRoadSegment& Segment, UPro
         Tangents.Add(FProcMeshTangent(Forward, false));
         Tangents.Add(FProcMeshTangent(Forward, false));
 
-        VertexColors.Add(FLinearColor::White);
-        VertexColors.Add(FLinearColor::White);
+        VertexColors.Add(FColor::White);
+        VertexColors.Add(FColor::White);
 
         if (i > 0)
         {

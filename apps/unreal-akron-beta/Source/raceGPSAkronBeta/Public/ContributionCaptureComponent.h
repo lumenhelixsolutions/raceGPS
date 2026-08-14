@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "ContributionCaptureComponent.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FPendingContribution
 {
     GENERATED_BODY()

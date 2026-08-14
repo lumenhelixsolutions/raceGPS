@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-13T07:36:08.543Z",
+  "hoot_root": "C:\\projects\\HOOTai",
+  "telemetry_files": {
+    "kernel": "C:\\projects\\HOOTai\\state\\ai_status.json",
+    "mirror": "C:\\projects\\racegps\\data\\telemetry\\ai_status.json",
+    "files": [
+      "C:\\projects\\HOOTai\\state\\ai_status.json",
+      "C:\\projects\\racegps\\data\\telemetry\\ai_status.json"
+    ]
+  },
+  "providers": {
+    "claude": {
+      "label": "Claude Pro",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": 45,
+        "window_hours": 5,
+        "recovery_note": "~1 msg / 7 min",
+        "limit_type": "rolling_window",
+        "max_messages": 45,
+        "replenish_rate_minutes": 7.1,
+        "context_penalty": true,
+        "notes": "Long-context sessions can deplete message blocks up to 3x faster."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "manual",
+      "eta": null
+    },
+    "chatgpt": {
+      "label": "ChatGPT Plus",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": 80,
+        "window_hours": 3,
+        "recovery_note": "resets on window boundary",
+        "limit_type": "rolling_window",
+        "max_messages": 80,
+        "replenish_rate_minutes": 2.25,
+        "notes": "Resets 3 hours from execution of each message chunk."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    },
+    "gemini": {
+      "label": "Gemini",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": null,
+        "window_hours": null,
+        "recovery_note": "daily reset 08:00 UTC",
+        "limit_type": "daily_reset",
+        "reset_time_utc": "08:00:00",
+        "max_requests": 1500,
+        "notes": "Daily transaction caps hit before context boundaries."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    },
+    "kimi": {
+      "label": "Kimi",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": null,
+        "window_hours": null,
+        "recovery_note": "freeze on overuse — 5h lockout",
+        "limit_type": "tier_based",
+        "lockout_duration_hours": 5,
+        "notes": "Context freeze on overflow; rolling recovery block applies instantly."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    },
+    "deepseek": {
+      "label": "DeepSeek",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": 50,
+        "window_hours": 3,
+        "recovery_note": "429s at peak load regardless of count",
+        "limit_type": "concurrency_dependent",
+        "max_messages": 50,
+        "replenish_rate_minutes": 3.6,
+        "notes": "Throws 429 during high peak loads regardless of individual message count."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    },
+    "perplexity": {
+      "label": "Perplexity Pro",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": null,
+        "window_hours": null,
+        "recovery_note": "daily reset 00:00 UTC",
+        "limit_type": "daily_reset",
+        "reset_time_utc": "00:00:00",
+        "max_requests": 600,
+        "notes": "Standard Search bypasses the daily pro execution allocation."
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    },
+    "ollama": {
+      "label": "Ollama",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": null,
+        "window_hours": null,
+        "recovery_note": "local — limited by hardware",
+        "limit_type": "local"
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "scan",
+      "eta": null
+    },
+    "llamacpp": {
+      "label": "llama.cpp",
+      "status": "ACTIVE",
+      "cooldown_until": null,
+      "limits_ref": {
+        "messages": null,
+        "window_hours": null,
+        "recovery_note": "local — limited by hardware",
+        "limit_type": "local"
+      },
+      "last_updated": "2026-06-13T07:36:08.542Z",
+      "source": "default",
+      "eta": null
+    }
+  },
+  "current_session_provider": "ollama",
+  "workspace_roots": {
+    "app": "C:\\projects\\racegps\\ui",
+    "core": "C:\\projects\\racegps",
+    "data": "C:\\projects\\racegps\\data"
+  },
+  "active_root_id": "core",
+  "matrix_line": "CLAUDE: ACTIVE · CHATGPT: UNKNOWN · GEMINI: UNKNOWN · KIMI: UNKNOWN · DEEPSEEK: UNKNOWN · PERPLEXITY: UNKNOWN · OLLAMA: ACTIVE · LLAMACPP: ACTIVE"
+}

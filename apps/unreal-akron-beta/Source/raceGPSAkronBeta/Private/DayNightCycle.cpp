@@ -6,7 +6,7 @@
 #include "Components/VolumetricCloudComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/StaticMesh.h"
-#include "Engine/Texture2D.h"
+#include "Engine/TextureCube.h"
 
 ADayNightCycle::ADayNightCycle(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -17,7 +17,7 @@ ADayNightCycle::ADayNightCycle(const FObjectInitializer& ObjectInitializer)
     SunLight->SetMobility(EComponentMobility::Movable);
     SunLight->Intensity = 2.5f;
     SunLight->LightColor = FColor::White;
-    SunLight->bUsedAsAtmosphereSunLight = true;
+    SunLight->bAtmosphereSunLight = true;
     SunLight->AtmosphereSunLightIndex = 0;
     RootComponent = SunLight;
 
@@ -44,7 +44,7 @@ ADayNightCycle::ADayNightCycle(const FObjectInitializer& ObjectInitializer)
     {
         SkyAtmosphere->SetupAttachment(RootComponent);
         SkyAtmosphere->SetMobility(EComponentMobility::Static);
-        SkyAtmosphere->TransformMode = ESkyAtmosphereTransformMode::PlanetTopAtmosphereAbsolute;
+        SkyAtmosphere->TransformMode = ESkyAtmosphereTransformMode::PlanetTopAtAbsoluteWorldOrigin;
     }
 
     // Volumetric Clouds — only created if engine supports it
@@ -69,12 +69,12 @@ void ADayNightCycle::BeginPlay()
     // Apply HDRI if set
     if (SkyLight && HDRIEnvironmentMap.IsValid())
     {
-        UTexture2D* HDRI = HDRIEnvironmentMap.LoadSynchronous();
+        UTextureCube* HDRI = HDRIEnvironmentMap.LoadSynchronous();
         if (HDRI)
         {
             SkyLight->SourceType = ESkyLightSourceType::SLS_SpecifiedCubemap;
             SkyLight->Cubemap = HDRI;
-            SkyLight->UpdateCaptureSkyLight();
+            SkyLight->RecaptureSky();
         }
     }
 }
@@ -171,7 +171,7 @@ void ADayNightCycle::UpdateSkyAtmosphere()
     FLinearColor Tint = FLinearColor::LerpUsingHSV(DayTint, SunsetTint, SunsetFactor);
 
     // Subtle adjustment to ground albedo color for bounce light
-    SkyAtmosphere->GroundAlbedo = Tint;
+    SkyAtmosphere->GroundAlbedo = Tint.ToFColor(true);
 }
 
 void ADayNightCycle::UpdateVolumetricClouds()

@@ -127,16 +127,16 @@ void USettingsSystem::ApplyControlSettings(AChaosVehiclePawn* Vehicle)
     Vehicle->SteeringSensitivity = Controls.bInvertSteering ? -Controls.SteeringSensitivity : Controls.SteeringSensitivity;
     Vehicle->ThrottleSensitivity = Controls.bInvertThrottle ? -Controls.ThrottleSensitivity : Controls.ThrottleSensitivity;
 
-    if (Vehicle->AudioComponent)
+    if (UVehicleAudioComponent* AudioComp = Vehicle->GetAudioComponent())
     {
-        Vehicle->AudioComponent->SetMasterVolume(Audio.MasterVolume);
+        AudioComp->SetMasterVolume(Audio.MasterVolume);
     }
 }
 
 void USettingsSystem::ResetToDefaults()
 {
     Video = FVideoSettings();
-    Audio = FAudioSettings();
+    Audio = FRaceGPSAudioSettings();
     Controls = FControlSettings();
     ApplyVideoSettings();
 }

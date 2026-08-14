@@ -13,11 +13,13 @@ AGhostVehicle::AGhostVehicle(const FObjectInitializer& ObjectInitializer)
     GhostMesh->SetVisibility(true);
     RootComponent = GhostMesh;
 
-    static ConstructorHelpers::FObjectFinder<USkeletalMesh> VehicleMesh(TEXT("/Game/Vehicles/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
-    if (VehicleMesh.Succeeded())
-    {
-        GhostMesh->SetSkeletalMesh(VehicleMesh.Object);
-    }
+    // TODO: Import real sedan skeletal mesh (see ChaosVehiclePawn for path).
+    // Commented to prevent CDO cook failure while placeholder art is missing.
+    // static ConstructorHelpers::FObjectFinder<USkeletalMesh> VehicleMesh(TEXT("/Game/Vehicles/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
+    // if (VehicleMesh.Succeeded())
+    // {
+    //     GhostMesh->SetSkeletalMesh(VehicleMesh.Object);
+    // }
 
     // Semi-transparent ghost material
     static ConstructorHelpers::FObjectFinder<UMaterial> GhostMat(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));

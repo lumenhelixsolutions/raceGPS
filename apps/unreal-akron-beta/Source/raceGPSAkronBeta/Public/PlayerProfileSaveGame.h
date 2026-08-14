@@ -9,7 +9,7 @@
 /**
  * Single saved car build entry with raw garageGPS JSON.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCarBuildEntry
 {
     GENERATED_BODY()
