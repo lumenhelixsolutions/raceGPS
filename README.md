@@ -2,7 +2,7 @@
 
 > **Real-world arcade racing.** Drive actual streets. Race your city. No fictional tracks — just you, your car, and the real world rendered in Unreal Engine 5.
 
-[![Unreal Engine 5.5](https://img.shields.io/badge/Unreal%20Engine-5.5-blue.svg)](https://www.unrealengine.com/)
+[![Unreal Engine 5.7](https://img.shields.io/badge/Unreal%20Engine-5.7-blue.svg)](https://www.unrealengine.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)]()
 
@@ -41,7 +41,7 @@ raceGPS is an **open-source desktop arcade racing game** built on top of real-wo
 See [`apps/unreal-akron-beta/BUILD.md`](apps/unreal-akron-beta/BUILD.md) for full build instructions.
 
 **Prerequisites:**
-- Unreal Engine 5.5
+- Unreal Engine 5.7
 - Visual Studio 2022 with C++ game dev workload
 - Python 3.10+ (for semantic compiler)
 
@@ -85,7 +85,7 @@ cd apps\unreal-akron-beta
 
 ```
 raceGPS
-├── apps/unreal-akron-beta/     # UE5.5 C++ project (35+ classes)
+├── apps/unreal-akron-beta/     # UE5.7 C++ project (35+ classes)
 │   ├── Source/                  # C++ gameplay, world, UI, systems
 │   ├── Config/                  # Engine / Game / Input INIs
 │   ├── Content/                 # Maps, materials, blueprints (Editor)

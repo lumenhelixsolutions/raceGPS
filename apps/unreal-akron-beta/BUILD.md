@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Unreal Engine 5.5** (installed via Epic Games Launcher)
+- **Unreal Engine 5.7** (installed via Epic Games Launcher)
 - **Visual Studio 2022** with "Game development with C++" workload
 - **Windows SDK 10.0.22000+**
 - **Python 3.10+** (for semantic compiler)
@@ -22,7 +22,7 @@ cd apps\unreal-akron-beta
 ```
 
 `Build.bat` performs the following steps automatically:
-1. Detects UE 5.5 installation from the Epic Games Launcher registry
+1. Detects UE 5.7 installation from the Epic Games Launcher registry
 2. Generates Visual Studio project files (`.sln`)
 3. Builds the **Development Editor** target via `MSBuild`
 4. Cooks content and stages the build
@@ -36,7 +36,7 @@ Right-click `raceGPSAkronBeta.uproject` → **Generate Visual Studio project fil
 
 Or via command line:
 ```powershell
-"C:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
+"C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
   -projectfiles -project="D:\projects\racegps\apps\unreal-akron-beta\raceGPSAkronBeta.uproject" `
   -game -engine -progress
 ```
@@ -106,7 +106,7 @@ Update these before tagging a release.
 ### Command-Line Packaging
 
 ```powershell
-"C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat" `
+"C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\RunUAT.bat" `
   BuildCookRun `
   -project="D:\projects\racegps\apps\unreal-akron-beta\raceGPSAkronBeta.uproject" `
   -noP4 -platform=Win64 -clientconfig=Shipping `

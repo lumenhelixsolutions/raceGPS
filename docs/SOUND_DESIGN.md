@@ -1,6 +1,6 @@
 # Sound Design Document — raceGPS
 
-> **Target Engine:** Unreal Engine 5.5  
+> **Target Engine:** Unreal Engine 5.7  
 > **Mix Format:** 48 kHz / 24-bit WAV (source)  
 > **Runtime:** Ogg Vorbis 256 kbps + uncompressed WAV for short one-shots  
 > **Spatial:** 7.1 surround base mix with HRTF fallback for headphones  

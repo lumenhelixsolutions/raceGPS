@@ -8,7 +8,7 @@ Usage:
     3. Click "Import City"
 
 Requires:
-    - Unreal Engine 5.5+ with Python Editor Script Plugin enabled
+    - Unreal Engine 5.7 with Python Editor Script Plugin enabled
     - raceGPSAkronBeta plugin built
 """
 

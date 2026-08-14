@@ -1,6 +1,6 @@
 # Architecture
 
-raceGPS is a **UE5.5 desktop application** with a Python semantic compiler pipeline that turns real-world OpenStreetMap data into playable driving cities.
+raceGPS is a **UE5.7 desktop application** with a Python semantic compiler pipeline that turns real-world OpenStreetMap data into playable driving cities.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐

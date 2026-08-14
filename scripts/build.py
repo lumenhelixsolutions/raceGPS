@@ -20,29 +20,37 @@ def find_ue5_engine() -> str:
     candidates = []
 
     if system == 'Windows':
-        # Check registry and common paths
+        # Check registry and common paths (UE 5.7 is the project engine; 5.5 kept as legacy fallback)
         candidates.extend([
+            r'C:\Program Files\Epic Games\UE_5.7',
             r'C:\Program Files\Epic Games\UE_5.5',
-            r'C:\Program Files\Epic Games\UE_5.4',
-            r'C:\Program Files\Epic Games\UE_5.3',
-            r'D:\Epic Games\UE_5.5',
-            r'D:\UE_5.5',
+            r'D:\Epic Games\UE_5.7',
+            r'D:\UE_5.7',
         ])
         try:
             import winreg
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\EpicGames\Unreal Engine\5.5') as key:
-                path, _ = winreg.QueryValueEx(key, 'InstalledDirectory')
-                if path:
-                    candidates.insert(0, path)
+            for version in ('5.7', '5.5'):
+                try:
+                    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, rf'SOFTWARE\EpicGames\Unreal Engine\{version}') as key:
+                        path, _ = winreg.QueryValueEx(key, 'InstalledDirectory')
+                        if path:
+                            candidates.insert(0, path)
+                            break
+                except OSError:
+                    continue
         except Exception:
             pass
     elif system == 'Darwin':
         candidates.extend([
+            '/Users/Shared/Epic Games/UE_5.7',
+            '/Applications/Epic Games/UE_5.7',
             '/Users/Shared/Epic Games/UE_5.5',
             '/Applications/Epic Games/UE_5.5',
         ])
     else:
         candidates.extend([
+            os.path.expanduser('~/UnrealEngine_5.7'),
+            '/opt/UnrealEngine_5.7',
             os.path.expanduser('~/UnrealEngine_5.5'),
             '/opt/UnrealEngine_5.5',
         ])

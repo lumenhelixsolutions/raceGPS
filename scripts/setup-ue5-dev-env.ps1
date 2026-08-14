@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 # setup-ue5-dev-env.ps1
-# One-time setup script for raceGPS UE5.5 development environment.
+# One-time setup script for raceGPS UE5.7 development environment.
 # RUN AS ADMINISTRATOR (Right-click → Run as PowerShell Administrator)
 #
 # What this does:
@@ -13,7 +13,7 @@
 # What YOU do:
 #   1. Run this script as Admin
 #   2. Open Epic Games Launcher → log in
-#   3. Click Unreal Engine → Library → + Engine Version → 5.5
+#   3. Click Unreal Engine → Library → + Engine Version → 5.7
 #   4. Let it download overnight (~30-40 GB)
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +36,7 @@ function Test-Admin {
 # PREAMBLE
 # ============================================================================
 Write-Log "========================================"
-Write-Log "raceGPS UE5.5 Dev Environment Setup"
+Write-Log "raceGPS UE5.7 Dev Environment Setup"
 Write-Log "========================================"
 
 if (-not (Test-Admin)) {
@@ -171,9 +171,9 @@ Write-Log "[STEP 3/4] Environment Variables"
 Write-Log "  RACEGPS_MSBUILD = $MsBuildPath"
 
 # Set UE5 path (will exist after user downloads it)
-$Ue55Path = "C:\Program Files\Epic Games\UE_5.5"
-[Environment]::SetEnvironmentVariable("RACEGPS_UE5", $Ue55Path, "User")
-Write-Log "  RACEGPS_UE5 = $Ue55Path (set now, available after UE5 install)"
+$Ue57Path = "C:\Program Files\Epic Games\UE_5.7"
+[Environment]::SetEnvironmentVariable("RACEGPS_UE5", $Ue57Path, "User")
+Write-Log "  RACEGPS_UE5 = $Ue57Path (set now, available after UE5 install)"
 
 # Add MSBuild to PATH if not already there
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -227,11 +227,11 @@ Write-Log "  1. Double-click 'Epic Games Launcher' on your desktop"
 Write-Log "  2. Log in with your Epic account"
 Write-Log "  3. Click 'Unreal Engine' tab → 'Library'"
 Write-Log "  4. Click the '+' button next to 'Engine Versions'"
-Write-Log "  5. Select '5.5' and click Install"
-Write-Log "  6. Choose install location: C:\Program Files\Epic Games\UE_5.5"
+Write-Log "  5. Select '5.7' and click Install"
+Write-Log "  6. Choose install location: C:\Program Files\Epic Games\UE_5.7"
 Write-Log "  7. Let it download overnight (~30-40 GB)"
 Write-Log ""
-Write-Log "AFTER UE5.5 IS INSTALLED:"
+Write-Log "AFTER UE5.7 IS INSTALLED:"
 Write-Log "  Double-click 'raceGPS Build' on your desktop"
 Write-Log "  or run: D:\projects\racegps\apps\unreal-akron-beta\Build.bat"
 Write-Log ""

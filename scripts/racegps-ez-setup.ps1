@@ -169,23 +169,21 @@ if (-not $vsFound) {
     Write-Warn "  You will need it for the UE build. Download from visualstudio.microsoft.com"
 }
 
-# Unreal Engine (check common locations for 5.5 or 5.7)
+# Unreal Engine 5.7 (check common install locations)
 $ueFound = $false
 $uePaths = @(
     "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat",
-    "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat",
-    "C:\Program Files (x86)\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat",
-    "C:\Program Files (x86)\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat"
+    "C:\Program Files (x86)\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat"
 )
 foreach ($p in $uePaths) {
     if (Test-Path $p) {
-        Write-Ok "Unreal Engine 5 found at $p"
+        Write-Ok "Unreal Engine 5.7 found at $p"
         $ueFound = $true
         break
     }
 }
 if (-not $ueFound) {
-    Write-Warn "Unreal Engine 5.5 or 5.7 not found in standard locations."
+    Write-Warn "Unreal Engine 5.7 not found in standard locations."
     Write-Warn "  Install via Epic Games Launcher (https://www.unrealengine.com/). This is the biggest prerequisite."
 }
 
