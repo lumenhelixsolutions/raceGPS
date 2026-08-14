@@ -78,9 +78,14 @@ def _generate_single_route(roads: list[dict], center: dict, mode: str, rng: rand
 
     for _ in range(max_segments):
         end_pt = current_road["points"][-1]
+        current_layer = current_road.get("layer", 0)
         candidates = []
         for r in roads:
             if r["id"] in used_ids:
+                continue
+            # Roads on different layers (bridge over street, tunnel under)
+            # may pass within meters of each other but do not connect.
+            if r.get("layer", 0) != current_layer:
                 continue
             for pt in r["points"]:
                 if _haversine(end_pt, pt) < 120:
