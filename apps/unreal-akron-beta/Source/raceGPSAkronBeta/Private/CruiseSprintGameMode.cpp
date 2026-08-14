@@ -49,6 +49,27 @@ void ACruiseSprintGameMode::StartPlay()
 {
     Super::StartPlay();
 
+    // Resolve the active city (config / cvar / command line; defaults to Akron) and
+    // let it override the Akron-flavored defaults of the path properties below.
+    if (UAkronXodrImporter::ResolveCityLayout(CityLayout))
+    {
+        CityPackPath = CityLayout.CitypackDir + TEXT("/");
+        if (!CityLayout.ManifestPath.IsEmpty())
+        {
+            ManifestFile = FPaths::GetCleanFilename(CityLayout.ManifestPath);
+        }
+        if (!CityLayout.XodrPath.IsEmpty())
+        {
+            XodrFile = FPaths::GetCleanFilename(CityLayout.XodrPath);
+        }
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Active city: %s (%s)"), *CityLayout.CityId, *CityLayout.DisplayName);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Could not resolve city layout for '%s'; falling back to Akron defaults"),
+            *UAkronXodrImporter::GetActiveCityId());
+    }
+
     if (!ReplayManager)
     {
         ReplayManager = NewObject<URaceReplayManager>(this);
@@ -127,7 +148,9 @@ void ACruiseSprintGameMode::StartPlay()
         ARoadMeshGenerator::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
     if (RoadGen)
     {
-        RoadGen->XodrPath = CityPackPath + XodrFile;
+        RoadGen->XodrPath = !CityLayout.XodrPath.IsEmpty()
+            ? CityLayout.XodrPath
+            : CityPackPath + XodrFile;
         RoadGen->GenerateRoadMeshAsync();
     }
 
@@ -138,7 +161,9 @@ void ACruiseSprintGameMode::StartPlay()
             BuildingGeneratorClass, FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
         if (BuildingGen)
         {
-            BuildingGen->BuildingsJsonPath = CityPackPath + TEXT("akron_buildings.json");
+            BuildingGen->BuildingsJsonPath = !CityLayout.BuildingsPath.IsEmpty()
+                ? CityLayout.BuildingsPath
+                : CityPackPath + TEXT("akron_buildings.json");
             BuildingGen->GenerateBuildingsAsync();
         }
     }
@@ -150,7 +175,9 @@ void ACruiseSprintGameMode::StartPlay()
             FurnitureSpawnerClass, FVector::ZeroVector, FRotator::ZeroRotator, RoadParams);
         if (Furniture)
         {
-            Furniture->RoadGraphJsonPath = CityPackPath + TEXT("akron_road_graph.json");
+            Furniture->RoadGraphJsonPath = !CityLayout.RoadGraphPath.IsEmpty()
+                ? CityLayout.RoadGraphPath
+                : CityPackPath + TEXT("akron_road_graph.json");
             Furniture->SpawnFurnitureAsync();
         }
     }
@@ -263,10 +290,22 @@ bool ACruiseSprintGameMode::IsVersionCompatible(const FString& CityVersion) cons
 
 void ACruiseSprintGameMode::LoadCityData()
 {
-    FString ManifestPath = CityPackPath + ManifestFile;
+    // Manifest path comes from the resolved layout when available.
+    const FString ManifestPath = !CityLayout.ManifestPath.IsEmpty()
+        ? CityLayout.ManifestPath
+        : CityPackPath + ManifestFile;
     UAkronXodrImporter::LoadManifest(ManifestPath, WorldOriginLat, WorldOriginLon);
 
-    UAkronXodrImporter::LoadRouteSplines(RouteDir, LoadedRoutes);
+    // Routes: single array file resolved from the manifest (both dialects), with the
+    // legacy per-route directory as fallback.
+    if (!CityLayout.RoutesPath.IsEmpty())
+    {
+        UAkronXodrImporter::LoadRouteSplines(CityLayout.RoutesPath, LoadedRoutes);
+    }
+    else
+    {
+        UAkronXodrImporter::LoadRouteSplines(RouteDir, LoadedRoutes);
+    }
     UAkronXodrImporter::LoadSpawnPoints(ManifestPath, LoadedSpawns);
     UAkronXodrImporter::LoadPOIs(ManifestPath, LoadedPOIs);
 

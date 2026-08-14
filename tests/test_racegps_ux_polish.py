@@ -19,7 +19,12 @@ def test_main_menu_exposes_polished_summary_surface():
     assert 'BuildLaunchButtonText()' in source
     assert 'BuildDriveSummaryText()' in source
     assert 'BuildVersionLine()' in source
-    assert 'Drive Akron' in source
+
+    # Launch button text is built from the resolved city layout (display-name
+    # driven), with Akron kept as the fallback default when nothing is configured.
+    assert 'UAkronXodrImporter::ResolveCityLayout(Layout)' in source
+    assert 'Layout.DisplayName' in source
+    assert 'FString CityName = TEXT("Akron");' in source
 
 
 def test_onboarding_exposes_premium_step_copy_and_viability_message():

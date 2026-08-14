@@ -138,6 +138,10 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronPOI> LoadedPOIs;
 
+    /** Resolved layout of the active citypack (populated in StartPlay from config/cvar/cmdline). */
+    UPROPERTY(BlueprintReadOnly, Category = "raceGPS|City")
+    FRaceGPSCityLayout CityLayout;
+
     UPROPERTY()
     TObjectPtr<class UPauseMenuWidget> ActivePauseMenu;
 

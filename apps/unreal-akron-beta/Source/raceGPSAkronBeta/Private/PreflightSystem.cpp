@@ -1,7 +1,9 @@
 // Copyright raceGPS. All Rights Reserved.
 
 #include "PreflightSystem.h"
+#include "AkronXodrImporter.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
@@ -241,35 +243,64 @@ FPreflightCheck UPreflightSystem::CheckCitypackIntegrity()
 {
     FPreflightCheck Check;
     Check.Category = TEXT("Citypack Data");
-    Check.Description = TEXT("Akron citypack must be present and valid");
 
-    IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-    FString ManifestPath = FPaths::ProjectContentDir() / TEXT("../citypacks/akron-oh-beta-001/akron_semantic_manifest.json");
-    FString RoutesPath = FPaths::ProjectContentDir() / TEXT("../citypacks/akron-oh-beta-001/akron_routes.json");
-    FString LevelSpecPath = FPaths::ProjectContentDir() / TEXT("../../generated/AkronWorld_LevelSpec.json");
-    if (!PlatformFile.FileExists(*ManifestPath))
+    // Resolve the active city (config / cvar / command line; defaults to Akron).
+    // Paths are project-relative, e.g. "../../citypacks/<city_id>/...".
+    FRaceGPSCityLayout Layout;
+    const FString CityId = UAkronXodrImporter::GetActiveCityId();
+    Check.Description = FString::Printf(TEXT("Citypack for '%s' must be present and valid"), *CityId);
+
+    const bool bResolved = UAkronXodrImporter::ResolveCityLayout(Layout);
+    const FString CityLabel = Layout.DisplayName.IsEmpty() ? CityId : Layout.DisplayName;
+
+    auto ToAbsolute = [](const FString& ProjectRelativePath)
+    {
+        return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / ProjectRelativePath);
+    };
+
+    if (!bResolved || Layout.ManifestPath.IsEmpty() || !FPaths::FileExists(ToAbsolute(Layout.ManifestPath)))
     {
         Check.Status = EPreflightStatus::Fail;
-        Check.Detail = TEXT("Akron citypack manifest not found");
-        Check.RecommendedAction = TEXT("Verify game installation or re-install citypack");
+        Check.Detail = FString::Printf(TEXT("Manifest for city '%s' not found"), *CityId);
+        Check.RecommendedAction = FString::Printf(
+            TEXT("Verify game installation, or check DefaultGame.ini [RaceGPS.CitySelection] CityId (currently '%s')"), *CityId);
+        return Check;
     }
-    else if (!PlatformFile.FileExists(*RoutesPath))
+
+    // Route data: single array file, or the legacy per-route routes/ directory.
+    bool bHasRoutes = false;
+    if (!Layout.RoutesPath.IsEmpty())
+    {
+        const FString FullRoutesPath = ToAbsolute(Layout.RoutesPath);
+        if (FPaths::FileExists(FullRoutesPath))
+        {
+            bHasRoutes = true;
+        }
+        else if (FPaths::DirectoryExists(FullRoutesPath))
+        {
+            TArray<FString> RouteFiles;
+            IFileManager::Get().FindFiles(RouteFiles, *(FullRoutesPath / TEXT("*.json")), true, false);
+            bHasRoutes = RouteFiles.Num() > 0;
+        }
+    }
+    if (!bHasRoutes)
     {
         Check.Status = EPreflightStatus::Fail;
-        Check.Detail = TEXT("Akron route data not found");
-        Check.RecommendedAction = TEXT("Regenerate or restore akron_routes.json before launching");
+        Check.Detail = FString::Printf(TEXT("Route data for city '%s' not found"), *CityLabel);
+        Check.RecommendedAction = TEXT("Regenerate the citypack (tools/universal-city-compiler) or restore the routes JSON before launching");
+        return Check;
     }
-    else if (!PlatformFile.FileExists(*LevelSpecPath))
+
+    if (Layout.LevelSpecPath.IsEmpty() || !FPaths::FileExists(ToAbsolute(Layout.LevelSpecPath)))
     {
         Check.Status = EPreflightStatus::Fail;
-        Check.Detail = TEXT("Canonical AkronWorld level spec not found");
-        Check.RecommendedAction = TEXT("Run tools/generate-level-spec.py to regenerate AkronWorld_LevelSpec.json");
+        Check.Detail = FString::Printf(TEXT("Canonical level spec for city '%s' not found"), *CityLabel);
+        Check.RecommendedAction = TEXT("Run tools/generate-level-spec.py to regenerate the level spec for the selected city");
+        return Check;
     }
-    else
-    {
-        Check.Status = EPreflightStatus::Pass;
-        Check.Detail = TEXT("Akron manifest, route data, and canonical level spec found");
-    }
+
+    Check.Status = EPreflightStatus::Pass;
+    Check.Detail = FString::Printf(TEXT("%s manifest, route data, and canonical level spec found"), *CityLabel);
     return Check;
 }
 

@@ -56,6 +56,15 @@ AChaosVehiclePawn::AChaosVehiclePawn(const FObjectInitializer& ObjectInitializer
     // Audio
     AudioComponent = CreateDefaultSubobject<UVehicleAudioComponent>(TEXT("AudioComponent"));
 
+    // Default arcade steering curve (X = MPH, Y = fraction of max steer angle).
+    // Full lock at parking speeds, gentle falloff to keep highway speed stable.
+    FRichCurve* ArcadeCurve = ArcadeSteeringCurve.GetRichCurve();
+    ArcadeCurve->Reset();
+    ArcadeCurve->AddKey(0.0f, 1.0f);
+    ArcadeCurve->AddKey(40.0f, 0.85f);
+    ArcadeCurve->AddKey(80.0f, 0.6f);
+    ArcadeCurve->AddKey(140.0f, 0.45f);
+
     // Default vehicle mesh placeholder
     // TODO: Import a real sedan skeletal mesh to /Game/Vehicles/Sedan/Sedan_SkelMesh
     // (or point to your car-kit output). The finder below is commented to allow cooking
@@ -72,6 +81,17 @@ void AChaosVehiclePawn::BeginPlay()
     Super::BeginPlay();
     InitChaosVehicleMovement();
     ApplyTuningData();
+
+    // Arcade tire/handling config applies whether or not TuningData is set,
+    // as long as the wheeled movement component and its WheelSetups exist.
+    if (bEnableArcadeHandling)
+    {
+        if (auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent()))
+        {
+            ApplyArcadeHandling(WheeledComp);
+        }
+    }
+
     UpdateCameraView();
 
     GetMesh()->OnComponentHit.AddDynamic(this, &AChaosVehiclePawn::OnVehicleHit);
@@ -183,6 +203,117 @@ void AChaosVehiclePawn::SetupWheel(UChaosWheeledVehicleMovementComponent* Wheele
     WheelCDO->SuspensionForceOffset = FVector(0.0f, 0.0f, Wheel.SuspensionForceOffset);
 }
 
+void AChaosVehiclePawn::ApplyArcadeHandling(UChaosWheeledVehicleMovementComponent* WheeledComp)
+{
+    if (!WheeledComp)
+        return;
+
+    const int32 NumWheels = WheeledComp->WheelSetups.Num();
+    if (NumWheels == 0)
+        return;
+
+    // Capture each wheel class's authored friction once, before any scaling, so
+    // repeated calls (e.g. SetTuningData re-applying) never compound the multiplier.
+    if (BaseWheelFriction.Num() != NumWheels)
+    {
+        BaseWheelFriction.SetNum(NumWheels);
+        for (int32 i = 0; i < NumWheels; ++i)
+        {
+            UClass* WheelClass = WheeledComp->WheelSetups[i].WheelClass
+                ? static_cast<UClass*>(WheeledComp->WheelSetups[i].WheelClass)
+                : UChaosVehicleWheel::StaticClass();
+            const UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+            BaseWheelFriction[i] = WheelCDO ? WheelCDO->FrictionForceMultiplier : 2.0f; // 2.0 = UChaosVehicleWheel ctor default
+        }
+    }
+    LastAppliedWheelFriction.Init(0.0f, NumWheels);
+
+    for (int32 i = 0; i < NumWheels; ++i)
+    {
+        FChaosWheelSetup& Setup = WheeledComp->WheelSetups[i];
+        UClass* WheelClass = Setup.WheelClass ? static_cast<UClass*>(Setup.WheelClass) : UChaosVehicleWheel::StaticClass();
+        UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+        if (!WheelCDO)
+        {
+            continue;
+        }
+
+        const float EffectiveFriction = BaseWheelFriction[i] * LateralGripMultiplier;
+
+        // Static tire params on the wheel CDO. The Chaos wheel sim reads SideSlipModifier
+        // (and Slip/SkidThreshold) live through a config pointer; GetPhysicsWheelConfig()
+        // re-fills that config in place so the running sim picks the values up.
+        WheelCDO->FrictionForceMultiplier = EffectiveFriction;
+        WheelCDO->SideSlipModifier = DriftGripRetention;
+        WheelCDO->bABSEnabled = bEnableABS;
+        WheelCDO->GetPhysicsWheelConfig();
+
+        // Keep the per-instance wheel object (Wheels[i]) consistent for debug/telemetry reads.
+        if (WheeledComp->Wheels.IsValidIndex(i) && WheeledComp->Wheels[i])
+        {
+            WheeledComp->Wheels[i]->FrictionForceMultiplier = EffectiveFriction;
+            WheeledComp->Wheels[i]->SideSlipModifier = DriftGripRetention;
+            WheeledComp->Wheels[i]->bABSEnabled = bEnableABS;
+        }
+
+        // FrictionMultiplier is COPIED into the physics sim at vehicle creation, so the
+        // CDO edit alone is not enough — push it through the runtime setter (physics-thread safe).
+        // No-op if the physics state is not created yet; creation then snapshots the CDO value above.
+        WheeledComp->SetWheelFrictionMultiplier(i, EffectiveFriction);
+        WheeledComp->SetABSEnabled(i, bEnableABS);
+        LastAppliedWheelFriction[i] = EffectiveFriction;
+    }
+
+    // Optional speed-sensitive steering assist. SteeringSetup.GetPhysicsSteeringConfig()
+    // re-fills the steering config in place; the steering sim reads it live via pointer.
+    if (bUseArcadeSteeringCurve)
+    {
+        FRichCurve* SrcCurve = ArcadeSteeringCurve.GetRichCurve();
+        if (SrcCurve && SrcCurve->GetNumKeys() > 0)
+        {
+            FRichCurve* DstCurve = WheeledComp->SteeringSetup.SteeringCurve.GetRichCurve();
+            DstCurve->Reset();
+            for (auto KeyIt = SrcCurve->GetKeyHandleIterator(); KeyIt; ++KeyIt)
+            {
+                const FRichCurveKey& Key = SrcCurve->GetKey(*KeyIt);
+                DstCurve->AddKey(Key.Time, Key.Value);
+            }
+            WheeledComp->SteeringSetup.GetPhysicsSteeringConfig(WheeledComp->GetWheelLayoutDimensions());
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Arcade handling applied: grip x%.2f, drift retention %.2f, drift scale %.2f past %.0f deg, speed reduction %.2f @ %.0f km/h, ABS %d, steering curve %d"),
+        LateralGripMultiplier, DriftGripRetention, DriftFrictionScale, DriftAngleThresholdDeg,
+        SpeedGripReductionFactor, SpeedGripReductionMaxSpeedKmh, bEnableABS ? 1 : 0, bUseArcadeSteeringCurve ? 1 : 0);
+}
+
+void AChaosVehiclePawn::UpdateArcadeGrip(UChaosWheeledVehicleMovementComponent* WheeledComp, float DeltaTime)
+{
+    if (!WheeledComp || BaseWheelFriction.Num() == 0)
+        return;
+
+    // Speed-sensitive grip reduction: linear falloff up to SpeedGripReductionMaxSpeedKmh.
+    const float SpeedKmh = GetSpeedKmh();
+    const float SpeedAlpha = FMath::Clamp(SpeedKmh / FMath::Max(SpeedGripReductionMaxSpeedKmh, 1.0f), 0.0f, 1.0f);
+    const float SpeedGripScale = 1.0f - SpeedGripReductionFactor * SpeedAlpha;
+
+    // Drift grip: ease toward DriftFrictionScale while sliding past the threshold.
+    const float DriftTarget = (FMath::Abs(CalculateDriftAngle()) > DriftAngleThresholdDeg) ? DriftFrictionScale : 1.0f;
+    CurrentDriftGripScale = FMath::FInterpTo(CurrentDriftGripScale, DriftTarget, DeltaTime, 3.0f);
+
+    const int32 NumWheels = FMath::Min(BaseWheelFriction.Num(), WheeledComp->WheelSetups.Num());
+    for (int32 i = 0; i < NumWheels; ++i)
+    {
+        const float Target = BaseWheelFriction[i] * LateralGripMultiplier * SpeedGripScale * CurrentDriftGripScale;
+        // Only push when the change is meaningful; each call enqueues a physics command.
+        if (FMath::Abs(Target - LastAppliedWheelFriction[i]) > 0.01f)
+        {
+            WheeledComp->SetWheelFrictionMultiplier(i, Target);
+            LastAppliedWheelFriction[i] = Target;
+        }
+    }
+}
+
 void AChaosVehiclePawn::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
@@ -220,6 +351,15 @@ void AChaosVehiclePawn::Tick(float DeltaTime)
         MoveComp->SetSteeringInput(FinalSteering);
         MoveComp->SetBrakeInput(CurrentBrake);
         MoveComp->SetHandbrakeInput(bHandbrake);
+
+        // Dynamic arcade grip: speed-sensitive reduction + drift friction scale
+        if (bEnableArcadeHandling)
+        {
+            if (auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(MoveComp))
+            {
+                UpdateArcadeGrip(WheeledComp, DeltaTime);
+            }
+        }
     }
 
     // Update audio with brake state
