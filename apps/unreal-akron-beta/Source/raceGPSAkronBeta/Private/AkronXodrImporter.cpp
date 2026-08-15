@@ -265,6 +265,28 @@ bool UAkronXodrImporter::ResolveCityLayout(FRaceGPSCityLayout& OutLayout)
         }
     }
 
+    // UE package/asset names cannot contain '.', spaces, etc. Spec level_names
+    // are derived from city_id (e.g. "cleveland_5.0km" -> "Cleveland5.0KmWorld"),
+    // which can be illegal. Normalize here — the single choke point every
+    // LevelName consumer (MainMenuWidget OpenLevel) goes through — so the
+    // runtime always opens the legal asset name ("Cleveland5_0KmWorld").
+    // Already-legal names (e.g. "AkronWorld") pass through unchanged.
+    if (!OutLayout.LevelName.IsEmpty())
+    {
+        FString Sanitized;
+        Sanitized.Reserve(OutLayout.LevelName.Len());
+        for (const TCHAR Ch : OutLayout.LevelName)
+        {
+            Sanitized.AppendChar((FChar::IsAlnum(Ch) || Ch == TEXT('_')) ? Ch : TEXT('_'));
+        }
+        if (Sanitized != OutLayout.LevelName)
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS] Level name '%s' normalized to legal UE package name '%s'"),
+                *OutLayout.LevelName, *Sanitized);
+            OutLayout.LevelName = MoveTemp(Sanitized);
+        }
+    }
+
     return true;
 }
 
