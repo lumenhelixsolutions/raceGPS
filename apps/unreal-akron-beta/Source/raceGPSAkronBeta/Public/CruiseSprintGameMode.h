@@ -235,6 +235,26 @@ protected:
      */
     virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
     void UpdateCountdown(float DeltaTime);
+
+    // --- Runtime self-diagnostics (permanent feature) -------------------------
+    // Gated by cvar "racegps.Diagnostics" (default ON in Development builds,
+    // settable via [SystemSettings] in DefaultEngine.ini or -racegps.Diagnostics=1).
+    // Emits greppable [raceGPS-PREFLIGHT] PASS/FAIL lines at StartPlay, then one
+    // structured [raceGPS-DIAG] sample per second for 15 s (traces/overlaps/FPS),
+    // a HighResShot at T+10s (skipped under -nullrhi) and a final VERDICT line.
+    // Zero cost after the ticker stops; no per-frame work.
+    bool IsDiagnosticsEnabled() const;
+    void RunDiagnosticsPreflight();
+    void DiagnosticsSampleTick();
+    /** Emits "[raceGPS-PREFLIGHT] PASS/FAIL gates-bound ..." once gates resolve. */
+    void DiagnosticsReportGates(int32 BoundCount, int32 ExpectedCount);
+
+    FTimerHandle DiagTimerHandle;
+    int32 DiagSampleCount = 0;
+    bool bDiagShotDone = false;
+    /** Gates bound for the active route; -1 = not resolved yet. */
+    int32 DiagGatesBound = -1;
+
     void InitHUDWidgets();
     void CreateDefaultVehiclePresets();
     void LoadHandlingModePresets();
