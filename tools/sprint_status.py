@@ -53,7 +53,20 @@ SPRINT = {
     ],
 }
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+def _resolve_repo_root() -> Path:
+    # 1) explicit env override, 2) script-relative (repo tools/ dir),
+    # 3) hardcoded fallback (used when this script is copied into a
+    #    Blueprint Automation assets dir, outside the repo tree).
+    env = os.environ.get("RACEGPS_ROOT")
+    if env and (Path(env) / "citypacks").exists():
+        return Path(env)
+    script_relative = Path(__file__).resolve().parent.parent
+    if (script_relative / "citypacks").exists():
+        return script_relative
+    return Path(r"C:\projects\racegps")
+
+
+REPO_ROOT = _resolve_repo_root()
 MAPS_DIR = REPO_ROOT / "apps" / "unreal-akron-beta" / "Content" / "Maps"
 CITYPACKS_DIR = REPO_ROOT / "citypacks"
 PYTEST_TIMEOUT_S = 240
