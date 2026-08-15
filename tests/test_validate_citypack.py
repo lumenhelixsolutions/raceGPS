@@ -442,3 +442,74 @@ class TestManifestNamedPacks:
         r = run_cli(tmp_path)
         assert r.returncode == 1
         assert 'fewer than 2 coordinates' in r.stdout
+
+
+# ---------------------------------------------------------------------------
+# --ignore-disconnected-components flag (CI gate for known accepted condition)
+# ---------------------------------------------------------------------------
+
+FIXTURE_PACK = ROOT / 'tests' / 'fixtures' / 'citypack-mini'
+
+
+class TestIgnoreDisconnectedComponentsFlag:
+    def _write_fragmented_pack(self, d):
+        (d / 'frag_semantic_manifest.json').write_text(json.dumps({
+            'city_id': 'frag', 'version': '1.0',
+            'bounds': {'west': -81.01, 'south': 40.99,
+                       'east': -80.99, 'north': 41.01},
+        }))
+        (d / 'frag_road_graph.json').write_text(json.dumps({
+            'roads': [
+                {'id': 'A', 'points': [{'lat': 41.0, 'lon': -81.0},
+                                       {'lat': 41.001, 'lon': -81.0}]},
+                {'id': 'B', 'points': [{'lat': 41.001, 'lon': -81.0},
+                                       {'lat': 41.002, 'lon': -81.0}]},
+                {'id': 'C', 'points': [{'lat': 41.005, 'lon': -81.0},
+                                       {'lat': 41.006, 'lon': -81.0}]},
+            ],
+            'intersections': [
+                {'node_id': 'n1', 'lat': 41.001, 'lon': -81.0,
+                 'road_ids': ['A', 'B']},
+                {'node_id': 'n2', 'lat': 41.0055, 'lon': -81.0,
+                 'road_ids': ['C']},
+            ],
+        }))
+        (d / 'frag.xodr').write_text(
+            '<OpenDRIVE><road id="1" length="10.0"/></OpenDRIVE>')
+
+    def test_components_error_fails_by_default(self, tmp_path):
+        self._write_fragmented_pack(tmp_path)
+        r = run_cli(tmp_path)
+        assert r.returncode == 1
+        assert 'disconnected components' in r.stdout
+        assert 'ERRORS' in r.stdout
+
+    def test_flag_downgrades_components_error_to_warning(self, tmp_path):
+        self._write_fragmented_pack(tmp_path)
+        r = run_cli(tmp_path, ['--ignore-disconnected-components'])
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert 'disconnected components' in r.stdout
+        assert '--ignore-disconnected-components' in r.stdout
+        assert 'WARNINGS' in r.stdout
+        assert 'Validation passed.' in r.stdout
+
+    def test_flag_does_not_hide_other_errors(self, tmp_path):
+        # Even with the flag, a genuine schema error must still fail.
+        self._write_fragmented_pack(tmp_path)
+        write_minimal_pack(tmp_path, [('A', [(41.0, -81.0)])])  # 1 coord: error
+        r = run_cli(tmp_path, ['--ignore-disconnected-components'])
+        assert r.returncode == 1
+        assert 'fewer than 2 coordinates' in r.stdout
+
+
+# ---------------------------------------------------------------------------
+# Committed fixture pack (used by CI as the validator smoke gate)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not FIXTURE_PACK.is_dir(),
+                    reason='fixture pack tests/fixtures/citypack-mini missing')
+def test_fixture_pack_validates_clean():
+    r = run_cli(FIXTURE_PACK)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert 'Validation passed.' in r.stdout
+    assert 'ERRORS' not in r.stdout

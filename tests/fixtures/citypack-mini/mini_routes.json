@@ -1,0 +1,17 @@
+[
+  {
+    "route_id": "mini_cruise_sprint_001",
+    "mode": "cruise_sprint",
+    "name": "Mini Sprint 1",
+    "difficulty": "beta",
+    "distance_meters": 2300,
+    "start": {"lat": 41.0, "lon": -81.0},
+    "finish": {"lat": 41.002, "lon": -80.999},
+    "points": [
+      {"lat": 41.0, "lon": -81.0},
+      {"lat": 41.001, "lon": -81.0},
+      {"lat": 41.001, "lon": -80.999},
+      {"lat": 41.002, "lon": -80.999}
+    ]
+  }
+]

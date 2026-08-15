@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <road id="A" name="Main Street" length="111.2" junction="-1" rule="RHT"/>
+  <road id="B" name="Main Street" length="84.4" junction="-1" rule="RHT"/>
+  <road id="C" name="Side Street" length="111.2" junction="-1" rule="RHT"/>
+</OpenDRIVE>

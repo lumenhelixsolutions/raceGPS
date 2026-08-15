@@ -1,0 +1,13 @@
+{
+  "city_id": "mini-fixture",
+  "display_name": "Mini Fixture",
+  "version": "1.0.0",
+  "game_version_min": "0.1.0",
+  "game_version_max": "9.9.9",
+  "origin": {"lat": 41.0, "lon": -81.0},
+  "bounds": {"west": -81.01, "south": 40.99, "east": -80.99, "north": 41.01},
+  "opendrive_file": "mini.xodr",
+  "routes": "mini_routes.json",
+  "road_graph": "mini_road_graph.json",
+  "route_count": 1
+}

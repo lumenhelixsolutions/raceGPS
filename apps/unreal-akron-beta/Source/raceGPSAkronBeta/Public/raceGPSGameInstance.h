@@ -30,8 +30,11 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "raceGPS|Settings")
     FString LastSelectedRoute = TEXT("akron_cruise_sprint_001");
 
+    // Default hero vehicle: CARLA Dodge Charger 2024 (T5). Matched by
+    // DisplayName against ACruiseSprintGameMode::VehiclePresets in StartPlay;
+    // falls back to VehiclePresets[0] if the preset is ever removed.
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "raceGPS|Settings")
-    FString LastSelectedVehicle = TEXT("Sedan");
+    FString LastSelectedVehicle = TEXT("CARLA Charger");
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "raceGPS|Settings")
     FString LastSelectedHandlingMode = TEXT("Arcade");

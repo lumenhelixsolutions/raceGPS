@@ -556,6 +556,10 @@ def main():
                         help='Maximum sane route length (km)')
     parser.add_argument('--route-on-road-tolerance-m', type=float, default=30.0,
                         help='Max allowed distance of route points from road network (meters)')
+    parser.add_argument('--ignore-disconnected-components', action='store_true',
+                        help='Downgrade the disconnected-components error to a warning '
+                             '(for packs where genuinely disjoint OSM features are an '
+                             'accepted condition); every other error still fails')
     args = parser.parse_args()
 
     if not os.path.isdir(args.citypack_dir):
@@ -676,14 +680,22 @@ def main():
                   f'across {iconn["roads"]} roads / {iconn["intersections"]} intersections; '
                   f'{iconn["roads_not_in_any_intersection"]} road(s) in no intersection')
             if iconn['components'] > 1:
-                conn_err.append(f'Road graph has {iconn["components"]} disconnected components '
-                                f'(via intersections topology)')
+                msg = (f'Road graph has {iconn["components"]} disconnected components '
+                       f'(via intersections topology)')
+                if args.ignore_disconnected_components:
+                    conn_warn.append(msg + ' [accepted: --ignore-disconnected-components]')
+                else:
+                    conn_err.append(msg)
             if iconn['roads_not_in_any_intersection']:
                 conn_warn.append(f'{iconn["roads_not_in_any_intersection"]} road(s) not referenced '
                                  f'by any intersection')
         elif snap['snapped_nodes'] and snap['snapped_components'] > 1:
-            conn_err.append(f'Road graph has {snap["snapped_components"]} disconnected components '
-                            f'even at {tol} m snap tolerance')
+            msg = (f'Road graph has {snap["snapped_components"]} disconnected components '
+                   f'even at {tol} m snap tolerance')
+            if args.ignore_disconnected_components:
+                conn_warn.append(msg + ' [accepted: --ignore-disconnected-components]')
+            else:
+                conn_err.append(msg)
         if snap['near_miss_count']:
             conn_warn.append(f'{snap["near_miss_count"]} near-miss endpoint pair(s) within {tol} m '
                              f'but not exactly connected (possible broken junctions)')

@@ -1,0 +1,17 @@
+{
+  "roads": [
+    {"id": "A", "name": "Main Street", "highway": "residential", "width": 7, "one_way": false,
+     "points": [{"lat": 41.0, "lon": -81.0}, {"lat": 41.001, "lon": -81.0}]},
+    {"id": "B", "name": "Main Street", "highway": "residential", "width": 7, "one_way": false,
+     "points": [{"lat": 41.001, "lon": -81.0}, {"lat": 41.001, "lon": -80.999}]},
+    {"id": "C", "name": "Side Street", "highway": "residential", "width": 7, "one_way": false,
+     "points": [{"lat": 41.001, "lon": -80.999}, {"lat": 41.002, "lon": -80.999}]}
+  ],
+  "intersections": [
+    {"node_id": "n1", "lat": 41.001, "lon": -81.0, "road_ids": ["A", "B"]},
+    {"node_id": "n2", "lat": 41.001, "lon": -80.999, "road_ids": ["B", "C"]}
+  ],
+  "node_count": 6,
+  "road_count": 3,
+  "intersection_count": 2
+}

@@ -51,3 +51,46 @@ jobs:
         with:
           name: pytest-results-windows
           path: test-results.xml
+
+  citypack-qa:
+    name: Citypack QA (validator + sprint status)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest shapely numpy requests jsonschema
+          if (Test-Path tools/akron-semantic-compiler/requirements.txt) {
+            python -m pip install -r tools/akron-semantic-compiler/requirements.txt
+          }
+          if (Test-Path tools/universal-city-compiler/requirements.txt) {
+            python -m pip install -r tools/universal-city-compiler/requirements.txt
+          }
+          if (Test-Path apps/semantic-map-server/requirements.txt) {
+            python -m pip install -r apps/semantic-map-server/requirements.txt
+          }
+        shell: pwsh
+
+      - name: Validate fixture citypack (smoke gate)
+        run: python tools/validate-citypack.py tests/fixtures/citypack-mini
+
+      - name: Validate Akron citypack (tracked pack)
+        # The disjoint-OSM-components error is a known accepted condition for
+        # the shipped packs (genuinely disjoint OSM features). The explicit
+        # flag downgrades ONLY that error to a warning; any other validator
+        # error still fails this step and the build.
+        run: python tools/validate-citypack.py citypacks/akron-oh-beta-001 --ignore-disconnected-components
+
+      - name: Sprint status smoke check (informational)
+        # Output is informational only; never fails the build. The collector
+        # also runs the pytest suite internally as part of its report.
+        continue-on-error: true
+        run: python tools/sprint_status.py --print

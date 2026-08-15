@@ -35,7 +35,10 @@ def test_game_instance_persists_vehicle_and_handling_mode_selection():
     header = GAME_INSTANCE_H.read_text(encoding="utf-8")
     source = GAME_INSTANCE_CPP.read_text(encoding="utf-8")
 
-    assert 'LastSelectedVehicle = TEXT("Sedan")' in header
+    # Default hero vehicle is the CARLA Dodge Charger 2024 (story T5); the
+    # string must match the DisplayName of the "CARLA Charger" preset in
+    # CruiseSprintGameMode.cpp::CreateDefaultVehiclePresets.
+    assert 'LastSelectedVehicle = TEXT("CARLA Charger")' in header
     assert 'LastSelectedHandlingMode = TEXT("Arcade")' in header
     assert 'Root->SetStringField(TEXT("LastSelectedVehicle"), LastSelectedVehicle);' in source
     assert 'Root->SetStringField(TEXT("LastSelectedHandlingMode"), LastSelectedHandlingMode);' in source
