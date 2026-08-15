@@ -210,6 +210,30 @@ protected:
     void SpawnPlayerAtStart();
     void SpawnRouteSpline();
     void SpawnCheckpoints();
+
+    /**
+     * True when the loaded level IS the baked city map for the active city
+     * (persistent-level package short name == CityLayout.LevelName). The baked
+     * map already contains PlayerStarts, route splines and checkpoint gates at
+     * correct baked (UE Z-up) positions, so runtime spawning/teleporting must
+     * stand down or every gate/spline is duplicated (black-screen hotfix).
+     */
+    bool bRunningBakedCityMap = false;
+    bool bBakedGatesBound = false;
+
+    /** Baked path: index/activate/bind the map's existing checkpoint gates by
+     *  nearest-position match against the selected route's checkpoints. */
+    void BindBakedCheckpointGates();
+    /** Baked path: spawn the ghost on the baked route spline's world points. */
+    void SpawnGhostOnBakedRoute();
+
+    /**
+     * Stock GameModeBase spawns the default pawn with dont-spawn-if-colliding
+     * semantics. The hero Charger's physics hull overlaps the runtime road
+     * meshes at baked PlayerStarts, which failed the spawn outright (no pawn,
+     * dead camera). Force adjust-or-always-spawn so the hero always spawns.
+     */
+    virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
     void UpdateCountdown(float DeltaTime);
     void InitHUDWidgets();
     void CreateDefaultVehiclePresets();

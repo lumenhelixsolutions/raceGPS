@@ -303,22 +303,25 @@ float UAkronXodrImporter::MetersPerDegreeLat()
 
 FVector UAkronXodrImporter::GeoToWorld(float Lat, float Lon, float OriginLat, float OriginLon)
 {
-    float MetersPerLon = MetersPerDegreeLon(OriginLat);
-    float MetersPerLat = MetersPerDegreeLat();
-    float X = (Lon - OriginLon) * MetersPerLon;
-    float Y = 0.0f;
-    float Z = -(Lat - OriginLat) * MetersPerLat;
-    return FVector(X, Y, Z);
+    // Standard UE Z-up: X = east, Y = north, Z = up. The T10 bake remaps
+    // compiler data (x, y, z) -> UE (x, -z, y) into exactly this convention
+    // (tools/ue5-import-level-spec.py::_spec_to_ue), so runtime code must use
+    // the same. Callers add height via +Z afterwards.
+    const float MetersPerLon = MetersPerDegreeLon(OriginLat);
+    const float MetersPerLat = MetersPerDegreeLat();
+    const float X = (Lon - OriginLon) * MetersPerLon;
+    const float Y = (Lat - OriginLat) * MetersPerLat;
+    return FVector(X, Y, 0.0f);
 }
 
 FVector UAkronXodrImporter::XodrToWorld(float X, float Y, float OriginLat, float OriginLon)
 {
-    // OpenDRIVE: X=east, Y=north
-    // Unreal:    X=east, Z=-north (south is positive Z)
-    // Origin already baked into XODR local coords, so just remap axes
+    // OpenDRIVE: X=east, Y=north  ->  UE Z-up: X=east, Y=north, Z=up.
+    // Same convention as GeoToWorld; origin already baked into XODR local
+    // coords, so no remap is needed beyond passing the axes through.
     (void)OriginLat;
     (void)OriginLon;
-    return FVector(X, 0.0f, -Y);
+    return FVector(X, Y, 0.0f);
 }
 
 bool UAkronXodrImporter::ImportXodr(const FString& XodrPath, TArray<FAkronRoadSegment>& OutRoads)

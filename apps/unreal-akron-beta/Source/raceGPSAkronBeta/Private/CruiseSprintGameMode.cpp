@@ -27,10 +27,12 @@
 #include "TrafficSpawner.h"
 #include "NeonHUD.h"
 #include "Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/PackageName.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 #include "Components/SplineComponent.h"
@@ -40,7 +42,15 @@
 ACruiseSprintGameMode::ACruiseSprintGameMode(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
-    DefaultPawnClass = AChaosVehiclePawn::StaticClass();
+    // Hero vehicle: CARLA Dodge Charger 2024 Blueprint (T5). In UE 5.7
+    // AGameModeBase::DefaultPawnClass is NOT a config property, so the class
+    // must be referenced here, not via ini. Fall back to the bare
+    // AChaosVehiclePawn if the BP is missing (content not staged).
+    static ConstructorHelpers::FClassFinder<APawn> HeroPawnBP(
+        TEXT("/Game/Vehicles/DodgeCharger2024/BP_DodgeCharger2024"));
+    DefaultPawnClass = HeroPawnBP.Succeeded()
+        ? HeroPawnBP.Class.Get()
+        : AChaosVehiclePawn::StaticClass();
     PrimaryActorTick.bCanEverTick = true;
     ScoringSystem = CreateDefaultSubobject<URaceScoringSystem>(TEXT("ScoringSystem"));
 }
@@ -68,6 +78,32 @@ void ACruiseSprintGameMode::StartPlay()
     {
         UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Could not resolve city layout for '%s'; falling back to Akron defaults"),
             *UAkronXodrImporter::GetActiveCityId());
+    }
+
+    // --- Baked-map detection (black-screen hotfix) ---------------------------
+    // When the loaded level IS the baked city map for the active city, the map
+    // already contains PlayerStarts, route splines and checkpoint gates at
+    // correct baked (UE Z-up) positions; runtime spawning must stand down or
+    // every gate/spline is duplicated. Detection: persistent-level package
+    // short name == resolved LevelName (PIE "UEDPIE_<n>_" prefix stripped).
+    {
+        FString MapName = FPackageName::GetShortName(GetWorld()->GetOutermost()->GetName());
+        if (MapName.StartsWith(TEXT("UEDPIE_")))
+        {
+            const int32 Sep = MapName.Find(TEXT("_"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 7);
+            if (Sep != INDEX_NONE)
+            {
+                MapName.RightChopInline(Sep + 1);
+            }
+        }
+        bRunningBakedCityMap = !CityLayout.LevelName.IsEmpty() &&
+            MapName.Equals(CityLayout.LevelName, ESearchCase::IgnoreCase);
+        int32 BakedSplines = 0;
+        int32 BakedGates = 0;
+        for (TActorIterator<ARouteSplineActor> It(GetWorld()); It; ++It) { BakedSplines++; }
+        for (TActorIterator<ACheckpointGate> It(GetWorld()); It; ++It) { BakedGates++; }
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Map '%s' vs city level '%s' -> baked city map: %s (baked splines: %d, baked gates: %d)"),
+            *MapName, *CityLayout.LevelName, bRunningBakedCityMap ? TEXT("YES") : TEXT("no"), BakedSplines, BakedGates);
     }
 
     if (!ReplayManager)
@@ -109,8 +145,7 @@ void ACruiseSprintGameMode::StartPlay()
 
     // Restore selected vehicle from game instance
     if (UraceGPSGameInstance* GI = Cast<UraceGPSGameInstance>(GetGameInstance()))
-    {
-        if (GI->LastSelectedVehicleTuning)
+    {        if (GI->LastSelectedVehicleTuning)
         {
             SelectedVehicleTuning = GI->LastSelectedVehicleTuning;
         }
@@ -136,6 +171,13 @@ void ACruiseSprintGameMode::StartPlay()
             : GI->LastSelectedHandlingMode;
         SelectedVehicleTuning = BuildMergedVehicleTuning(SelectedVehicleTuning, HandlingMode);
         GI->LastSelectedVehicleTuning = SelectedVehicleTuning;
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Vehicle selection: %s"),
+            SelectedVehicleTuning ? *SelectedVehicleTuning->DisplayName : TEXT("<none>"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[raceGPS] GameInstance class is '%s', expected raceGPSGameInstance — vehicle selection inert"),
+            *GetNameSafe(GetGameInstance() ? GetGameInstance()->GetClass() : nullptr));
     }
 
     LoadCityData();
@@ -340,17 +382,31 @@ void ACruiseSprintGameMode::LoadCityData()
 
 void ACruiseSprintGameMode::SpawnPlayerAtStart()
 {
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+
+    if (bRunningBakedCityMap)
+    {
+        // Baked PlayerStarts are already at correct positions; stock
+        // RestartPlayer placed the pawn there. Only re-apply vehicle tuning.
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Baked map: pawn at %s (runtime teleport skipped)"),
+            Pawn ? *Pawn->GetActorLocation().ToString() : TEXT("<no pawn>"));
+        ApplyVehicleTuningToPlayer();
+        return;
+    }
+
     if (LoadedSpawns.Num() == 0) return;
 
     FAkronSpawnPoint& Spawn = LoadedSpawns[0];
+    // Spawn.Location stores (lon, 0, -lat) in degrees (compiler convention),
+    // so Lat = -Location.Z, Lon = Location.X. GeoToWorld is now UE Z-up.
     FVector WorldLoc = UAkronXodrImporter::GeoToWorld(
-        Spawn.Location.Z, Spawn.Location.X, WorldOriginLat, WorldOriginLon);
+        -Spawn.Location.Z, Spawn.Location.X, WorldOriginLat, WorldOriginLon);
     WorldLoc.Z = 50.0f; // Slight lift off ground
 
-    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    if (PC && PC->GetPawn())
+    if (Pawn)
     {
-        PC->GetPawn()->SetActorLocationAndRotation(WorldLoc, Spawn.Rotation, false, nullptr, ETeleportType::ResetPhysics);
+        Pawn->SetActorLocationAndRotation(WorldLoc, Spawn.Rotation, false, nullptr, ETeleportType::ResetPhysics);
     }
 
     // Apply selected vehicle tuning after spawn/teleport
@@ -359,12 +415,21 @@ void ACruiseSprintGameMode::SpawnPlayerAtStart()
 
 void ACruiseSprintGameMode::SpawnRouteSpline()
 {
+    if (bRunningBakedCityMap)
+    {
+        // The selected route's spline is baked into the map; only the ghost
+        // needs runtime wiring, following the baked spline's world points.
+        SpawnGhostOnBakedRoute();
+        return;
+    }
+
     if (LoadedRoutes.Num() == 0 || SelectedRouteIndex >= LoadedRoutes.Num()) return;
 
     const FAkronRouteSpline& Route = LoadedRoutes[SelectedRouteIndex];
     if (Route.Waypoints.Num() < 2) return;
 
-    // Convert raw lat/lon waypoints to world space
+    // Convert raw lat/lon waypoints to world space. Waypoints store
+    // (lon, ?, -lat) in degrees, so Lat = -Wp.Z, Lon = Wp.X.
     TArray<FVector> WorldWaypoints;
     for (const FVector& Wp : Route.Waypoints)
     {
@@ -397,11 +462,19 @@ void ACruiseSprintGameMode::SpawnRouteSpline()
 
 void ACruiseSprintGameMode::SpawnCheckpoints()
 {
+    if (bRunningBakedCityMap)
+    {
+        // Gates are baked into the map; index/activate/bind them in place.
+        BindBakedCheckpointGates();
+        return;
+    }
+
     if (LoadedRoutes.Num() == 0 || SelectedRouteIndex >= LoadedRoutes.Num()) return;
 
     const FAkronRouteSpline& Route = LoadedRoutes[SelectedRouteIndex];
     for (int32 i = 0; i < Route.CheckpointLocations.Num(); ++i)
     {
+        // CheckpointLocations store (lon, ?, -lat) in degrees.
         FVector WorldLoc = UAkronXodrImporter::GeoToWorld(
             -Route.CheckpointLocations[i].Z, Route.CheckpointLocations[i].X, WorldOriginLat, WorldOriginLon);
         WorldLoc.Z = 100.0f;
@@ -418,6 +491,129 @@ void ACruiseSprintGameMode::SpawnCheckpoints()
             Gate->OnCheckpointReached.AddDynamic(this, &ACruiseSprintGameMode::OnCheckpointReached);
         }
     }
+}
+
+APawn* ACruiseSprintGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)
+{
+    FActorSpawnParameters SpawnInfo;
+    SpawnInfo.Instigator = GetInstigator();
+    SpawnInfo.ObjectFlags |= RF_Transient; // never save default player pawns into a map
+    SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+    APawn* ResultPawn = GetWorld()->SpawnActor<APawn>(GetDefaultPawnClassForController(NewPlayer), SpawnTransform, SpawnInfo);
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] SpawnDefaultPawn: %s at %s"),
+        *GetNameSafe(ResultPawn), *SpawnTransform.GetLocation().ToString());
+    return ResultPawn;
+}
+
+void ACruiseSprintGameMode::BindBakedCheckpointGates()
+{
+    if (bBakedGatesBound) return;
+    bBakedGatesBound = true;
+    if (LoadedRoutes.Num() == 0 || SelectedRouteIndex >= LoadedRoutes.Num()) return;
+
+    const FAkronRouteSpline& Route = LoadedRoutes[SelectedRouteIndex];
+
+    TArray<ACheckpointGate*> Gates;
+    for (TActorIterator<ACheckpointGate> It(GetWorld()); It; ++It)
+    {
+        Gates.Add(*It);
+    }
+
+    // Match each loaded checkpoint to the nearest baked gate. Both derive from
+    // the same compiler data (bake remaps (x,y,z)->(x,-z,y); GeoToWorld is now
+    // the same Z-up convention), so correct matches land at ~0 distance.
+    int32 Bound = 0;
+    float MaxMatchDist = 0.0f;
+    for (int32 i = 0; i < Route.CheckpointLocations.Num(); ++i)
+    {
+        const FVector Expected = UAkronXodrImporter::GeoToWorld(
+            -Route.CheckpointLocations[i].Z, Route.CheckpointLocations[i].X, WorldOriginLat, WorldOriginLon);
+
+        ACheckpointGate* Best = nullptr;
+        float BestDist = MAX_FLT;
+        for (ACheckpointGate* Gate : Gates)
+        {
+            const float D = FVector::Dist2D(Gate->GetActorLocation(), Expected);
+            if (D < BestDist)
+            {
+                BestDist = D;
+                Best = Gate;
+            }
+        }
+        if (!Best || BestDist > 5000.0f)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Baked map: no baked gate near checkpoint %d (best dist %.1f)"), i, BestDist);
+            continue;
+        }
+
+        Best->CheckpointIndex = i;
+        Best->ActivateGate();
+        Best->OnCheckpointReached.AddDynamic(this, &ACruiseSprintGameMode::OnCheckpointReached);
+        Gates.Remove(Best); // never bind one gate to two indices
+        Bound++;
+        MaxMatchDist = FMath::Max(MaxMatchDist, BestDist);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Baked map: bound %d/%d checkpoint gates (world gates total: %d, max match dist %.1f); runtime-spawned gates: 0"),
+        Bound, Route.CheckpointLocations.Num(), Gates.Num() + Bound, MaxMatchDist);
+}
+
+void ACruiseSprintGameMode::SpawnGhostOnBakedRoute()
+{
+    if (LoadedRoutes.Num() == 0 || SelectedRouteIndex >= LoadedRoutes.Num()) return;
+
+    const FAkronRouteSpline& Route = LoadedRoutes[SelectedRouteIndex];
+    if (Route.Waypoints.Num() < 2) return;
+
+    // Pick the baked route spline whose first point matches the selected
+    // route's first waypoint (nearest-position match; labels are editor-only).
+    const FVector ExpectedStart = UAkronXodrImporter::GeoToWorld(
+        -Route.Waypoints[0].Z, Route.Waypoints[0].X, WorldOriginLat, WorldOriginLon);
+
+    ARouteSplineActor* Best = nullptr;
+    float BestDist = MAX_FLT;
+    int32 SplineCount = 0;
+    for (TActorIterator<ARouteSplineActor> It(GetWorld()); It; ++It)
+    {
+        ARouteSplineActor* Candidate = *It;
+        if (!Candidate->Spline || Candidate->Spline->GetNumberOfSplinePoints() < 2) continue;
+        SplineCount++;
+        const float D = FVector::Dist2D(
+            Candidate->Spline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World), ExpectedStart);
+        if (D < BestDist)
+        {
+            BestDist = D;
+            Best = Candidate;
+        }
+    }
+
+    if (!Best || BestDist > 5000.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[raceGPS] Baked map: no baked route spline matched route %s (%d candidates); ghost disabled"),
+            *Route.RouteId, SplineCount);
+        return;
+    }
+
+    TArray<FVector> WorldWaypoints;
+    const int32 NumPoints = Best->Spline->GetNumberOfSplinePoints();
+    WorldWaypoints.Reserve(NumPoints);
+    for (int32 i = 0; i < NumPoints; ++i)
+    {
+        WorldWaypoints.Add(Best->Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::World));
+    }
+
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    AGhostVehicle* Ghost = GetWorld()->SpawnActor<AGhostVehicle>(
+        AGhostVehicle::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+    if (Ghost)
+    {
+        Ghost->SetRouteWaypoints(WorldWaypoints);
+        Ghost->StartGhostRun(CountdownDuration + 2.0f);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Baked map: ghost follows baked route spline (%d pts, %d baked splines, match dist %.1f); runtime-spawned splines: 0"),
+        NumPoints, SplineCount, BestDist);
 }
 
 void ACruiseSprintGameMode::UpdateCountdown(float DeltaTime)
