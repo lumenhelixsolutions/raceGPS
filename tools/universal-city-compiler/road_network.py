@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generic semantic road graph builder from OSM data."""
 
+import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -9,12 +10,158 @@ from typing import Any
 # can render bridges above / tunnels below crossing roads.
 LAYER_HEIGHT_M = 5.0
 
+# Default endpoint snap tolerance. The citypack validator's near-miss report
+# shows the overwhelming bulk of broken-junction pairs are sub-meter
+# (top pairs 0.2-0.3 m), while the narrowest road we model is 5 m wide —
+# 1.5 m repairs tessellation/rounding gaps without risking merges of
+# parallel carriageways.
+SNAP_TOLERANCE_M = 1.5
+
 _FALSY_TAG_VALUES = ("", "no", "false", "0")
 
 
 def _is_truthy_tag(val: str | None) -> bool:
     """OSM tag presence check: bridge=yes/viaduct/... vs bridge=no/absent."""
     return (val or "").strip().lower() not in _FALSY_TAG_VALUES
+
+
+def _dist_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Haversine distance in meters between two lat/lon points."""
+    R = 6371000
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def _snap_road_endpoints(roads: list[dict], tolerance_m: float = SNAP_TOLERANCE_M) -> dict:
+    """Snap near-miss road endpoints together, per layer, in O(n).
+
+    Endpoints (first/last point of each road) within `tolerance_m` are
+    clustered with a spatial grid + union-find. Cluster target selection:
+
+    - If the cluster contains endpoints that were ALREADY exactly equal
+      (a real OSM shared-node junction), those never move; lone outliers
+      snap onto the nearest such exact group.
+    - Otherwise (all endpoints distinct) the cluster snaps to its centroid.
+      Centroid is used rather than highest-degree endpoint because clusters
+      here are pure singletons — no endpoint has more "degree" than another.
+
+    Endpoints on different OSM layers are NEVER snapped together: a bridge
+    endpoint 1 m above a surface street is not a junction. Snapping mutates
+    road point coordinates in place; returns an additive stats report.
+    """
+    endpoints = []  # (road_index, end_key, lat, lon, layer)
+    for i, r in enumerate(roads):
+        for end in (0, -1):
+            p = r["points"][end]
+            endpoints.append((i, end, p["lat"], p["lon"], r.get("layer", 0)))
+
+    report = {
+        "enabled": tolerance_m > 0,
+        "tolerance_m": tolerance_m,
+        "endpoints_total": len(endpoints),
+        "pairs_snapped": 0,
+        "cross_layer_pairs_skipped": 0,
+        "clusters_merged": 0,
+        "endpoints_moved": 0,
+        "max_distance_moved_m": 0.0,
+        "intersections_added": 0,
+        "intersections_augmented": 0,
+    }
+    if tolerance_m <= 0 or len(endpoints) < 2:
+        return report
+
+    # Spatial grid with ground-sized cells (>= tolerance) so any pair within
+    # tolerance lands in the same or an adjacent cell (3x3 scan suffices).
+    ref_lat = math.radians(sum(e[2] for e in endpoints) / len(endpoints))
+    m_per_deg_lon = max(111320.0 * math.cos(ref_lat), 11132.0)  # clamp near poles
+    cell_lat = tolerance_m / 110540.0   # 1 deg lat >= 110.54 km everywhere
+    cell_lon = tolerance_m / m_per_deg_lon
+
+    grid: dict[tuple[int, int], list[int]] = {}
+    for idx, (_, _, lat, lon, _) in enumerate(endpoints):
+        key = (math.floor(lat / cell_lat), math.floor(lon / cell_lon))
+        grid.setdefault(key, []).append(idx)
+
+    parent = list(range(len(endpoints)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    for idx, (_, _, lat, lon, layer) in enumerate(endpoints):
+        klat = math.floor(lat / cell_lat)
+        klon = math.floor(lon / cell_lon)
+        for dlat in (-1, 0, 1):
+            for dlon in (-1, 0, 1):
+                for j in grid.get((klat + dlat, klon + dlon), ()):
+                    if j <= idx:
+                        continue
+                    _, _, lat2, lon2, layer2 = endpoints[j]
+                    if _dist_m(lat, lon, lat2, lon2) <= tolerance_m:
+                        if layer == layer2:
+                            if (lat, lon) != (lat2, lon2):
+                                report["pairs_snapped"] += 1
+                            union(idx, j)
+                        else:
+                            report["cross_layer_pairs_skipped"] += 1
+
+    clusters: dict[int, list[int]] = {}
+    for idx in range(len(endpoints)):
+        clusters.setdefault(find(idx), []).append(idx)
+
+    def _move(idx: int, tgt_lat: float, tgt_lon: float) -> None:
+        ri, end, lat, lon, _ = endpoints[idx]
+        if (lat, lon) == (tgt_lat, tgt_lon):
+            return
+        moved = _dist_m(lat, lon, tgt_lat, tgt_lon)
+        report["max_distance_moved_m"] = max(report["max_distance_moved_m"], moved)
+        report["endpoints_moved"] += 1
+        roads[ri]["points"][end]["lat"] = tgt_lat
+        roads[ri]["points"][end]["lon"] = tgt_lon
+
+    for members in clusters.values():
+        if len(members) < 2:
+            continue
+        by_coord: dict[tuple[float, float], list[int]] = {}
+        for m in members:
+            by_coord.setdefault((endpoints[m][2], endpoints[m][3]), []).append(m)
+        exact_groups = [c for c, mem in by_coord.items() if len(mem) >= 2]
+
+        if exact_groups:
+            # Already-connected junctions stay put; lone outliers join the
+            # nearest exact group (guaranteed within tolerance by clustering,
+            # but verify anyway for transitive-chain edge cases).
+            for coord, mem in by_coord.items():
+                if len(mem) >= 2:
+                    continue
+                tgt = min(exact_groups,
+                          key=lambda c: _dist_m(coord[0], coord[1], c[0], c[1]))
+                if _dist_m(coord[0], coord[1], tgt[0], tgt[1]) <= tolerance_m:
+                    for m in mem:
+                        _move(m, tgt[0], tgt[1])
+        else:
+            tgt_lat = sum(endpoints[m][2] for m in members) / len(members)
+            tgt_lon = sum(endpoints[m][3] for m in members) / len(members)
+            for m in members:
+                _move(m, tgt_lat, tgt_lon)
+
+        road_ids = {endpoints[m][0] for m in members}
+        if len(road_ids) >= 2:
+            report["clusters_merged"] += 1
+
+    report["max_distance_moved_m"] = round(report["max_distance_moved_m"], 3)
+    return report
 
 
 def _parse_layer(tags: dict) -> int:
@@ -37,7 +184,8 @@ def _parse_layer(tags: dict) -> int:
     return 0
 
 
-def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float = 0.0) -> dict[str, Any]:
+def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float = 0.0,
+                     snap_tolerance_m: float = SNAP_TOLERANCE_M) -> dict[str, Any]:
     """Parse OSM and build a semantic road graph with world-space coordinates."""
     tree = ET.parse(osm_path)
     root = tree.getroot()
@@ -115,6 +263,11 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
             "is_tunnel": _is_truthy_tag(w["tags"].get("tunnel")),
         })
 
+    # Snap near-miss endpoints (per layer) so visually touching roads actually
+    # connect. Runs BEFORE intersection detection and bounds so downstream
+    # consumers (intersections, route generation, export) see snapped coords.
+    snap_report = _snap_road_endpoints(roads, snap_tolerance_m)
+
     # Find intersections (nodes shared by 2+ roads on the SAME layer).
     # Roads at different layers (e.g. a bridge over a surface street) share a
     # node in OSM but do not physically connect, so they must not junction.
@@ -134,6 +287,43 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
                         "layer": lyr,
                     })
 
+    # Fold snapped endpoints into the intersection list: an endpoint shared by
+    # 2+ roads after snapping is a junction even when OSM used distinct node
+    # ids. Existing OSM-node intersections get the newly connected road ids;
+    # brand-new junction points get additive "from_snap" entries.
+    if snap_report["enabled"]:
+        existing = {(i["layer"], i["lat"], i["lon"]): i for i in intersections}
+        buckets: dict[tuple[int, float, float], set[str]] = {}
+        for r in roads:
+            for end in (0, -1):
+                p = r["points"][end]
+                key = (r.get("layer", 0), p["lat"], p["lon"])
+                buckets.setdefault(key, set()).add(r["id"])
+        snap_seq = 0
+        for (lyr, lat, lon), rids in buckets.items():
+            if len(rids) < 2:
+                continue
+            hit = existing.get((lyr, lat, lon))
+            if hit is not None:
+                before = len(hit["road_ids"])
+                for rid in sorted(rids):
+                    if rid not in hit["road_ids"]:
+                        hit["road_ids"].append(rid)
+                if len(hit["road_ids"]) > before:
+                    snap_report["intersections_augmented"] += 1
+            else:
+                snap_seq += 1
+                intersections.append({
+                    "node_id": f"snap_{snap_seq}",
+                    "lat": lat,
+                    "lon": lon,
+                    "road_ids": sorted(rids),
+                    "layer": lyr,
+                    "from_snap": True,
+                })
+                existing[(lyr, lat, lon)] = intersections[-1]
+                snap_report["intersections_added"] += 1
+
     # Compute world bounds from all road points
     all_lats = [p["lat"] for r in roads for p in r["points"]]
     all_lons = [p["lon"] for r in roads for p in r["points"]]
@@ -151,6 +341,7 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
         "road_count": len(roads),
         "intersection_count": len(intersections),
         "origin": {"lat": origin_lat, "lon": origin_lon},
+        "endpoint_snap": snap_report,
     }
 
 
