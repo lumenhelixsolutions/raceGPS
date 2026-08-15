@@ -48,10 +48,16 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/App.h"
+#include "Engine/GameViewportClient.h"
+#include "Camera/CameraActor.h"
+#include "HAL/FileManager.h"
 
 // Defined at the bottom of this file (diagnostics section); used earlier by the
 // spawn-clearance guard.
 static FString DiagActorName(const AActor* Actor);
+
+// Defined in the diagnostics section; used by the screenshot confirmation poll.
+static bool DiagFindNewScreenshot(const FString& Dir, const FDateTime& Since, FString& OutPath, int64& OutBytes);
 
 // racegps.Diagnostics: 1 = runtime self-diagnostics (preflight + 15s ticker).
 // Default ON in Development builds; override via [SystemSettings] in
@@ -283,6 +289,12 @@ void ACruiseSprintGameMode::StartPlay()
         RunDiagnosticsPreflight();
         DiagSampleCount = 0;
         bDiagShotDone = false;
+        bDiagShotRequested = false;
+        bDiagShotFallbackFired = false;
+        bDiagShotResultLogged = false;
+        DiagBirdseyeCam.Reset();
+        bDiagBirdseyeShotFired = false;
+        bDiagBirdseyeDone = false;
         DiagGatesBound = -1;
         GetWorld()->GetTimerManager().SetTimer(DiagTimerHandle, this,
             &ACruiseSprintGameMode::DiagnosticsSampleTick, 1.0f, true, 1.0f);
@@ -1335,6 +1347,32 @@ static FString DiagActorName(const AActor* Actor)
 #endif
 }
 
+// Newest .png in Dir modified at/after Since (2s tolerance for clock rounding).
+static bool DiagFindNewScreenshot(const FString& Dir, const FDateTime& Since, FString& OutPath, int64& OutBytes)
+{
+    TArray<FString> Pngs;
+    IFileManager::Get().FindFiles(Pngs, *(Dir / TEXT("*.png")), true, false);
+    const FDateTime Threshold = Since - FTimespan::FromSeconds(2.0);
+    FDateTime BestTime = FDateTime::MinValue();
+    bool bFound = false;
+    for (const FString& Name : Pngs)
+    {
+        const FString Full = Dir / Name;
+        const FDateTime Stamp = IFileManager::Get().GetTimeStamp(*Full);
+        if (Stamp >= Threshold && Stamp > BestTime)
+        {
+            BestTime = Stamp;
+            OutPath = Full;
+            bFound = true;
+        }
+    }
+    if (bFound)
+    {
+        OutBytes = IFileManager::Get().FileSize(*OutPath);
+    }
+    return bFound;
+}
+
 bool ACruiseSprintGameMode::IsDiagnosticsEnabled() const
 {
     return CVarRaceGPSDiagnostics.GetValueOnGameThread() != 0;
@@ -1533,9 +1571,20 @@ void ACruiseSprintGameMode::DiagnosticsSampleTick()
         {
             const FString ShotDir = FPaths::ScreenShotDir();
             UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] capturing HighResShot 1280x720 -> %s"), *ShotDir);
-            if (GEngine)
+            // HighResShot is a VIEWPORT command: handled by UGameViewportClient::
+            // Exec (GameViewportClient.cpp routes it to HandleHighresScreenshot
+            // Command). GEngine->Exec never routes there and silently swallows
+            // it (no PNG written). Route via the game viewport instead.
+            if (UGameViewportClient* VC = World->GetGameViewport())
             {
-                GEngine->Exec(World, TEXT("HighResShot 1280x720"));
+                VC->Exec(World, TEXT("HighResShot 1280x720"), *GLog);
+                bDiagShotRequested = true;
+                DiagShotRequestedAt = FDateTime::Now();
+            }
+            else
+            {
+                UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] screenshot FAILED (no game viewport in this session)"));
+                bDiagShotResultLogged = true;
             }
         }
         else
@@ -1568,8 +1617,104 @@ void ACruiseSprintGameMode::DiagnosticsSampleTick()
             *Verdict, *PawnStr, VelZ, *DownStr, DiagGatesBound);
     }
 
-    // Cheap: stop after 15 samples.
-    if (DiagSampleCount >= 15)
+    // --- Screenshot write confirmation / fallback -----------------------------
+    // The capture lands asynchronously (image write queue); poll for a new PNG
+    // once per sample. If nothing appears by T+15s, fall back to the plain
+    // viewport "Shot" command; log written/FAILED either way (greppable).
+    if (bDiagShotRequested && !bDiagShotResultLogged && DiagSampleCount > 10)
+    {
+        FString FoundPath;
+        int64 FoundBytes = 0;
+        if (DiagFindNewScreenshot(FPaths::ScreenShotDir(), DiagShotRequestedAt, FoundPath, FoundBytes))
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] screenshot written: %s (bytes=%lld)"), *FoundPath, FoundBytes);
+            bDiagShotResultLogged = true;
+        }
+        else if (DiagSampleCount >= 15 && !bDiagShotFallbackFired)
+        {
+            bDiagShotFallbackFired = true;
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] no PNG 5s after HighResShot; falling back to viewport 'Shot' command"));
+            if (UGameViewportClient* VC = World->GetGameViewport())
+            {
+                VC->Exec(World, TEXT("Shot"), *GLog);
+                DiagShotRequestedAt = FDateTime::Now();
+            }
+        }
+        else if (DiagSampleCount >= 18)
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] screenshot FAILED (no new PNG in %s after HighResShot + Shot fallback)"),
+                *FPaths::ScreenShotDir());
+            bDiagShotResultLogged = true;
+        }
+    }
+
+    // --- Birdseye bisect experiment (T+12/14/16, skipped under -nullrhi) ------
+    // Distinguishes "local occlusion at spawn" from "global render break":
+    // look down at the world from 300m above the pawn and capture a second shot.
+    const bool bDiagRender = !FParse::Param(FCommandLine::Get(), TEXT("nullrhi"));
+
+    if (DiagSampleCount == 12 && bDiagRender && Pawn && !DiagBirdseyeCam.IsValid())
+    {
+        FActorSpawnParameters CamParams;
+        CamParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        const FVector CamLoc = Pawn->GetActorLocation() + FVector(0, 0, 30000.0);
+        ACameraActor* BirdCam = World->SpawnActor<ACameraActor>(
+            ACameraActor::StaticClass(), CamLoc, FRotator(-70.0f, 0.0f, 0.0f), CamParams);
+        if (BirdCam && PC)
+        {
+            DiagBirdseyeCam = BirdCam;
+            PC->SetViewTarget(BirdCam);
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] birdseye camera at %s (pitch -70, 30000uu above pawn %s)"),
+                *BirdCam->GetActorLocation().ToString(), *Pawn->GetActorLocation().ToString());
+        }
+    }
+
+    if (DiagSampleCount == 14 && DiagBirdseyeCam.IsValid() && !bDiagBirdseyeShotFired)
+    {
+        bDiagBirdseyeShotFired = true;
+        DiagBirdseyeShotAt = FDateTime::Now();
+        if (UGameViewportClient* VC = World->GetGameViewport())
+        {
+            VC->Exec(World, TEXT("HighResShot 1280x720"), *GLog);
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] capturing birdseye HighResShot 1280x720"));
+        }
+    }
+
+    if (DiagSampleCount >= 16 && bDiagBirdseyeShotFired && !bDiagBirdseyeDone)
+    {
+        bDiagBirdseyeDone = true;
+        // Restore the pawn view and clean up the temp camera.
+        if (PC && Pawn)
+        {
+            PC->SetViewTarget(Pawn);
+        }
+        if (DiagBirdseyeCam.IsValid())
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] birdseye camera final location %s; view target restored, camera destroyed"),
+                *DiagBirdseyeCam->GetActorLocation().ToString());
+            DiagBirdseyeCam->Destroy();
+            DiagBirdseyeCam.Reset();
+        }
+        FString FoundPath;
+        int64 FoundBytes = 0;
+        if (DiagFindNewScreenshot(FPaths::ScreenShotDir(), DiagBirdseyeShotAt, FoundPath, FoundBytes))
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] birdseye captured: %s (bytes=%lld)"), *FoundPath, FoundBytes);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] birdseye FAILED (no new PNG in %s)"), *FPaths::ScreenShotDir());
+        }
+    }
+
+    // Cheap: stop after 15 samples (-nullrhi) or once the birdseye verdict has
+    // landed in a rendering session (hard cap 20 samples).
+    const bool bDiagWorkDone =
+        (!bDiagShotRequested || bDiagShotResultLogged) &&
+        (!bDiagBirdseyeShotFired || bDiagBirdseyeDone);
+    if (DiagSampleCount >= 20 ||
+        (DiagSampleCount >= 17 && bDiagWorkDone) ||
+        (DiagSampleCount >= 15 && bDiagWorkDone && !bDiagRender))
     {
         World->GetTimerManager().ClearTimer(DiagTimerHandle);
         UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] diagnostics ticker stopped after %d samples"), DiagSampleCount);

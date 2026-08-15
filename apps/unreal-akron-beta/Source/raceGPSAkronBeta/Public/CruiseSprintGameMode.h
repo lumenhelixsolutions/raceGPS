@@ -251,7 +251,19 @@ protected:
 
     FTimerHandle DiagTimerHandle;
     int32 DiagSampleCount = 0;
+    /** Capture request fired (guards the one-shot at T+10s). */
     bool bDiagShotDone = false;
+    /** Capture actually requested (false under -nullrhi). */
+    bool bDiagShotRequested = false;
+    bool bDiagShotFallbackFired = false;
+    bool bDiagShotResultLogged = false;
+    FDateTime DiagShotRequestedAt;
+    // Birdseye bisect experiment: temp camera 30000uu above the pawn (T+12s),
+    // second HighResShot (T+14s), restore+confirm (T+16s). Skipped under -nullrhi.
+    TWeakObjectPtr<class ACameraActor> DiagBirdseyeCam;
+    bool bDiagBirdseyeShotFired = false;
+    bool bDiagBirdseyeDone = false;
+    FDateTime DiagBirdseyeShotAt;
     /** Gates bound for the active route; -1 = not resolved yet. */
     int32 DiagGatesBound = -1;
 
