@@ -387,6 +387,17 @@ def main() -> int:
         stage = "pois"
     if stage == "pois":
         stage_pois(bundle)
+        prog["stage"] = "lighting"
+        write_progress(prog)
+        stage = "lighting"
+    if stage == "lighting":
+        # Never ship a black map: idempotent daytime rig (sun/sky/skylight/fog).
+        level_subsys = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+        level_subsys.load_level(package_path)
+        load_module("lighting_rig", "tools/ue5-headless-lighting-rig.py") \
+            .ensure_lighting_rig(level_subsys)
+        if not level_subsys.save_current_level():
+            raise RuntimeError("save after lighting stage failed")
         prog["stage"] = "done"
         write_progress(prog)
 

@@ -26,6 +26,7 @@ Exit code 0 = runtime will find everything it needs; 1 = something is missing.
 import argparse
 import configparser
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -304,6 +305,24 @@ def main():
             for key in ("spawn_points", "routes"):
                 if not isinstance(spec.get(key), list) or not spec[key]:
                     report.warn(f"{spec_path.name}: '{key}' empty or missing")
+            # --- baked map sanity (cheap binary sniff; T10 black-map regression) ---
+            if level_name:
+                safe_name = re.sub(r"[^A-Za-z0-9_]", "_", level_name)
+                umap = (project_dir / "Content" / "Maps" / f"{safe_name}.umap")
+                if not umap.is_file():
+                    report.warn(f"baked map missing: {umap.relative_to(root)} "
+                                "(run tools/ue5-headless-city-import.py)")
+                else:
+                    blob = umap.read_bytes()
+                    missing_rig = [name for name in
+                                   (b"DirectionalLight", b"SkyAtmosphere", b"SkyLight")
+                                   if name not in blob]
+                    if missing_rig:
+                        report.fail(f"{umap.name}: no lighting actors baked in "
+                                    f"(missing {', '.join(n.decode() for n in missing_rig)}) "
+                                    "— map will render black; run tools/ue5-headless-lighting-rig.py")
+                    else:
+                        report.ok(f"baked map lighting rig present: {umap.name}")
 
     print_summary(report)
     sys.exit(1 if report.errors else 0)

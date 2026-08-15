@@ -18,9 +18,15 @@ gates = placeholders = 0
 building_instances = water_instances = 0
 pmc_sections = 0
 pois = playerstarts = splines = 0
+lighting = {"DirectionalLight": 0, "SkyAtmosphere": 0, "SkyLight": 0,
+            "ExponentialHeightFog": 0, "SphereReflectionCapture": 0,
+            "BoxReflectionCapture": 0}
 for a in actors:
     cls = a.get_class()
     label = a.get_actor_label()
+    cls_name = cls.get_name()
+    if cls_name in lighting:
+        lighting[cls_name] += 1
     if bp_gate and cls == bp_gate:
         gates += 1
     elif cls.get_name() == "Actor" and label.startswith("CP_"):
@@ -47,4 +53,7 @@ w(f"building_instances={building_instances}")
 w(f"water_instances={water_instances}")
 w(f"terrain_pmc_sections={pmc_sections}")
 w(f"pois={pois} playerstarts={playerstarts} spline_actors={splines}")
+w("lighting: " + ", ".join(f"{k}={v}" for k, v in lighting.items()))
+missing = [k for k in ("DirectionalLight", "SkyAtmosphere", "SkyLight") if lighting[k] == 0]
+w("lighting_status=" + ("OK" if not missing else "MISSING:" + ",".join(missing)))
 w("done")
