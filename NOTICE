@@ -3,3 +3,15 @@ Copyright 2026 Lumen Helix Solutions
 
 This repository contains raceGPS framework source, docs, and original SVG brand assets.
 Do not commit provider API keys, downloaded map tiles, paid assets, Unreal Engine source, marketplace assets, or restricted datasets.
+
+---
+
+Third-party asset attributions
+==============================
+
+CARLA vehicle assets (apps/unreal-akron-beta/Content/Carla/)
+  This game uses assets from CARLA: An Open Urban Driving Simulator
+  Copyright © 2019-2026 Computer Vision Center (CVC), Universitat Autònoma de Barcelona (UAB)
+  Licensed under CC-BY 4.0: https://creativecommons.org/licenses/by/4.0/
+  Source: https://bitbucket.org/carla-simulator/carla-content (tag 0.10.0)
+  See: apps/unreal-akron-beta/Content/Vehicles/CARLA-ATTRIBUTION.txt

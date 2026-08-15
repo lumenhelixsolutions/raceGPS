@@ -42,6 +42,14 @@ def _load_importer():
     return mod
 
 
+def _load_bp_helper():
+    helper_path = REPO_ROOT / "tools" / "ue5-create-checkpoint-gate-bp.py"
+    spec = importlib.util.spec_from_file_location("checkpoint_gate_bp", helper_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def main() -> int:
     spec_path = Path(os.environ.get("RACEGPS_LEVEL_SPEC", str(REPO_ROOT / SPEC_REL)))
     if not spec_path.exists():
@@ -78,6 +86,12 @@ def main() -> int:
     if not level_subsys.new_level(package_path):
         unreal.log_error(f"[raceGPS] Failed to create level {package_path}")
         return 1
+
+    # Make sure /Game/Blueprints/BP_CheckpointGate exists so checkpoint
+    # markers spawn as real gates instead of placeholder plain Actors.
+    gate_bp = _load_bp_helper().ensure_checkpoint_gate_bp()
+    if gate_bp is None:
+        unreal.log_warning("[raceGPS] BP_CheckpointGate unavailable; checkpoints will spawn as placeholder Actors")
 
     # Reuse the interactive importer's actor pass with the editor (unreal) live.
     importer = _load_importer()

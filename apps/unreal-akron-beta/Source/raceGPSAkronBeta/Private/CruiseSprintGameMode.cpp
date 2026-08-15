@@ -817,6 +817,18 @@ void ACruiseSprintGameMode::CreateDefaultVehiclePresets()
         0.6f, 0.05f
     ));
 
+    // CARLA Charger — imported CARLA 0.10.0 Dodge Charger 2024 hero vehicle
+    // (CC-BY 4.0, see Content/Vehicles/CARLA-ATTRIBUTION.txt). Muscle-sports
+    // tuning paired with BP_DodgeCharger2024 (child of AChaosVehiclePawn, so
+    // the arcade handling defaults apply).
+    VehiclePresets.Add(CreatePreset(
+        TEXT("CARLA Charger"), TEXT("CARLA Dodge Charger 2024. Big V8 muscle: heavy, torquey, built for power slides."),
+        EVehicleClass::Sports,
+        1900.0f, 6500.0f, 0.35f, 6,
+        2000.0f, 3800.0f,
+        0.45f, 0.12f
+    ));
+
     UE_LOG(LogTemp, Log, TEXT("[raceGPS] Created %d vehicle presets"), VehiclePresets.Num());
 }
 

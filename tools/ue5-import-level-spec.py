@@ -35,10 +35,21 @@ def _find_blueprint(path: str):
     return path
 
 
+def _spec_to_ue(location: dict):
+    """Level-spec data coords -> UE coords.
+
+    The spec pipeline uses x=east m, y=up m (always 0), z=-north m. UE is
+    Z-up with a horizontal X/Y ground plane, so map data (x, y, z) onto UE
+    (x, -z, y): east stays X, north becomes +Y, up becomes +Z. Without this
+    remap, spec actors land in a vertical X/Z curtain (T10).
+    """
+    return unreal.Vector(location["x"], -location["z"], location["y"])
+
+
 def _spawn_actor(actor_class, location: dict, rotation: dict, label: str):
     """Spawn an actor in the level or print the command."""
     if HAS_UNREAL:
-        loc = unreal.Vector(location["x"], location["y"], location["z"])
+        loc = _spec_to_ue(location)
         rot = unreal.Rotator(rotation["pitch"], rotation["yaw"], rotation["roll"])
         actor = unreal.EditorLevelLibrary.spawn_actor_from_class(actor_class, loc, rot)
         if actor:
@@ -60,8 +71,10 @@ def _add_spline_points(actor, points: list[dict], label: str):
     if HAS_UNREAL:
         comp = actor.get_component_by_class(unreal.SplineComponent)
         if not comp:
-            # Actor.add_component_by_class does not exist in UE5.7 Python; create
-            # the component directly and register it on the spawned actor.
+            # Actor.add_component_by_class / add_instance_component do not exist
+            # in UE5.7 Python; create the component and attach it (used only as
+            # a fallback — routes normally spawn as ARouteSplineActor, which
+            # provides its own SplineComponent).
             comp = unreal.new_object(unreal.SplineComponent, actor)
             if actor.root_component:
                 comp.attach_to_component(
@@ -72,14 +85,11 @@ def _add_spline_points(actor, points: list[dict], label: str):
                     unreal.AttachmentRule.KEEP_WORLD,
                     False,
                 )
-            if hasattr(comp, "register_component"):
-                comp.register_component()
-            actor.add_instance_component(comp)
         if comp:
             comp.clear_spline_points()
             for pt in points:
                 comp.add_spline_point(
-                    unreal.Vector(pt["x"], pt["y"], pt["z"]),
+                    _spec_to_ue(pt),
                     unreal.SplineCoordinateSpace.WORLD,
                 )
         return

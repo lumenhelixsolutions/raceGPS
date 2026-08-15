@@ -1,0 +1,24 @@
+CARLA Asset Attribution (CC-BY 4.0)
+====================================
+
+This game uses assets from CARLA: An Open Urban Driving Simulator
+Copyright © 2019-2026 Computer Vision Center (CVC), Universitat Autònoma de Barcelona (UAB)
+Licensed under CC-BY 4.0: https://creativecommons.org/licenses/by/4.0/
+
+Imported content (story T5):
+- Dodge Charger 2024 (SK_DodgeCharger2024 skeletal mesh, skeleton,
+  Phys_DodgeCharger2024 physics asset, materials and textures), sourced from
+  the official CARLA content repository, tag 0.10.0:
+  https://bitbucket.org/carla-simulator/carla-content/src/0.10.0/
+
+Imported files live under:
+- Content/Carla/Static/Car/4Wheeled/DodgeCharger2024/  (original CARLA package
+  layout preserved so cross-asset references resolve)
+- Content/Carla/Static/GenericMaterials/               (shared CARLA master
+  materials / textures referenced by the vehicle materials)
+
+The raceGPS hero Blueprint BP_DodgeCharger2024
+(Content/Vehicles/DodgeCharger2024/) references these CARLA assets.
+
+License text: https://creativecommons.org/licenses/by/4.0/legalcode
+CARLA simulator: https://carla.org/ | https://github.com/carla-simulator/carla
