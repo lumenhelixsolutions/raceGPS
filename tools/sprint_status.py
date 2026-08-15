@@ -297,8 +297,8 @@ def build_artifact():
 
 
 def run(ctx):
-    """Managed Blueprint runner entrypoint: def run(ctx) -> JSON-serializable artifact."""
-    return build_artifact()
+    """Managed Blueprint runner entrypoint: must return the AutomationOutput wrapper."""
+    return {"artifact": build_artifact()}
 
 
 def main():
