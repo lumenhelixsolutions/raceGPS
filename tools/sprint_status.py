@@ -296,6 +296,11 @@ def build_artifact():
     return artifact
 
 
+def run(ctx):
+    """Managed Blueprint runner entrypoint: def run(ctx) -> JSON-serializable artifact."""
+    return build_artifact()
+
+
 def main():
     if "--print" in sys.argv[1:]:
         print(json.dumps(build_artifact(), indent=2))
