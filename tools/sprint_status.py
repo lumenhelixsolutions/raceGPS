@@ -40,13 +40,14 @@ SPRINT = {
         {"id": "T5", "title": "CARLA hero car + attribution", "status": "pending", "owner": "ASSET-1"},
         {"id": "T6", "title": "Recompile + validate both cities", "status": "pending", "owner": "QA-1"},
         {"id": "T7", "title": "Validator + status in CI", "status": "pending", "owner": "TOOLS-1"},
-        {"id": "T8", "title": "Editor-drive fast-follows", "status": "pending", "owner": "ORCH"},
+        {"id": "T8", "title": "Editor-drive fast-follows (2 fixes shipped)", "status": "in-progress", "owner": "ORCH"},
+        {"id": "T10", "title": "Headless full-city import (terrain+buildings+water)", "status": "pending", "owner": "WG-3"},
         {"id": "T9", "title": "MassEntity staggered traffic (stretch)", "status": "pending", "owner": "unassigned"},
     ],
     "followups": [
-        "Owner editor-drive impressions pending — may reorder T-stories",
+        "Owner drive verdict: crash fixed (9d064e4), visuals need T10",
         "Sprint 3 candidates: multiplayer/backend track (Flash-to-Challenge)",
-        "Master 12 commits ahead of origin — owner pushing via Claude Code",
+        "Master 14 commits ahead of origin — owner pushing via Claude Code",
     ],
 }
 

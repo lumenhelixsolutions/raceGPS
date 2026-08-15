@@ -24,7 +24,8 @@
 | T5 | CARLA hero car: download CARLA 0.10.0 UE5 asset pack, import 1 vehicle, CC-BY attribution file, wire to arcade tire config from S9 | 8 | ASSET-1 | T4 | S1 stretch S8 |
 | T6 | Recompile Cleveland + Akron with T1–T3, gate through validator (expect: components ↓, near-miss pairs ~0, circuit loop closed) | 3 | QA-1 | T1,T2,T3 | |
 | T7 | Validator → CI: wire validate-citypack.py + sprint_status.py into GitHub Actions so regressions block merges | 3 | TOOLS-1 | T6 | |
-| T8 | Editor-drive fixes: fast-follow bucket for whatever the owner reports from the Cleveland drive (sized as 1 story; overflow → Sprint 3) | 3 | ORCH | — | step 3 |
+| T8 | Editor-drive fixes: fast-follow bucket for owner-reported issues (✅ item 1: Lumen distance fields f025530; ✅ item 2: deprecated CVar boot crash 9d064e4) | 3 | ORCH | — | step 3 |
+| T10 | **Headless full-city import** (the "doesn't look like Cleveland" fix): extend the W5 pythonscript commandlet to import terrain heightmap, building meshes (119k Cleveland / 25k Akron), water, and POI props into the map — port the interactive editor_import_widget citypack pass to headless | 8 | WG-3 | T2 | owner drive |
 
 **Stretch (5 SP):** T9 — MassEntity staggered traffic spawner (spec Bug #7, never implemented)
 
@@ -33,7 +34,7 @@
 ```
 WAVE 0 (serial)   branch + SPRINT dict update + dashboard refresh
 WAVE 1 (parallel) T1 loop-closer │ T2 water extractor │ T4 checkpoint BP │ T5 CARLA download+import
-WAVE 2 (serial)   T3 snapping (after T1 lands — same file family) 
+WAVE 2 (parallel) T3 snapping (after T1 — same file family) │ T10 headless full-city import (after T2 — needs water data)
 WAVE 3 (serial)   T6 recompile both cities → QA gate
 WAVE 4 (parallel) T7 CI wiring │ T8 editor-drive fixes │ T9 stretch
 WAVE 5 (serial)   ORCH integration → acceptance gate → merge decision
