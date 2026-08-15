@@ -26,30 +26,27 @@ from pathlib import Path
 # Sprint metadata — edit this dict when a new sprint starts.
 # ---------------------------------------------------------------------------
 SPRINT = {
-    "sprint_name": "Sprint 1 — Cleveland Citypack",
+    "sprint_name": "Sprint 2 — Make Cleveland Real",
     "sprint_goal": (
-        "Ship the Cleveland 5.0km citypack alongside Akron: bridge/tunnel road "
-        "layers, parametrized city pipeline, arcade tire model, and a UE5.7 "
-        "runtime-readiness truth pass."
+        "Cleveland looks and plays like Cleveland: water under its bridges, "
+        "closed circuit routes, snapped junctions, real checkpoint gates, "
+        "and a CARLA hero car on arcade tires."
     ),
     "stories": [
-        {"id": "S1", "title": "Cleveland 5.0km citypack", "status": "done", "owner": "TOOLS-1"},
-        {"id": "S2", "title": "Parametrized city pipeline", "status": "done", "owner": "WG-2"},
-        {"id": "S3", "title": "Citypack validator", "status": "done", "owner": "TOOLS-1"},
-        {"id": "S4", "title": "Bridge/tunnel layers", "status": "done", "owner": "WG-1"},
-        {"id": "S5", "title": "Route generator + loop closer", "status": "done", "owner": "WG-3"},
-        {"id": "S9", "title": "Arcade tire model", "status": "done", "owner": "PHYS-1"},
-        {"id": "S14", "title": "QA truth pass", "status": "done", "owner": "QA-1"},
-        {"id": "S15", "title": "Runtime readiness checker", "status": "done", "owner": "TOOLS-1"},
-        {"id": "W5", "title": "UE5 weekly build W5", "status": "done", "owner": "WG-1"},
-        {"id": "S8", "title": "CARLA hero car (stretch)", "status": "pending", "owner": "unassigned"},
+        {"id": "T1", "title": "Route loop-closer (circuit 873m gap)", "status": "pending", "owner": "WG-1"},
+        {"id": "T2", "title": "Water extractor fix (Cuyahoga + lakefront)", "status": "pending", "owner": "WG-2"},
+        {"id": "T3", "title": "Junction endpoint snapping (<2m pairs)", "status": "pending", "owner": "WG-1"},
+        {"id": "T4", "title": "BP_CheckpointGate via headless commandlet", "status": "pending", "owner": "ASSET-1"},
+        {"id": "T5", "title": "CARLA hero car + attribution", "status": "pending", "owner": "ASSET-1"},
+        {"id": "T6", "title": "Recompile + validate both cities", "status": "pending", "owner": "QA-1"},
+        {"id": "T7", "title": "Validator + status in CI", "status": "pending", "owner": "TOOLS-1"},
+        {"id": "T8", "title": "Editor-drive fast-follows", "status": "pending", "owner": "ORCH"},
+        {"id": "T9", "title": "MassEntity staggered traffic (stretch)", "status": "pending", "owner": "unassigned"},
     ],
     "followups": [
-        "Cleveland circuit route loop-closer is a stub (start/finish 873m apart)",
-        "Water extractor found 0 rivers — Cuyahoga missing",
-        "Akron: 1015 near-miss junction pairs need endpoint snapping",
-        "BP_CheckpointGate Blueprint missing — checkpoints are placeholders",
-        "S8 CARLA hero car (stretch, not started)",
+        "Owner editor-drive impressions pending — may reorder T-stories",
+        "Sprint 3 candidates: multiplayer/backend track (Flash-to-Challenge)",
+        "Master 12 commits ahead of origin — owner pushing via Claude Code",
     ],
 }
 
