@@ -104,7 +104,14 @@ def compile_city(city_query: str, output_dir: Path, radius_km: float = 5.0,
 
     # Step 7: Extract water bodies
     print("[7/10] Extracting water bodies...")
-    water = extract_water(osm_path, origin_lat, origin_lon)
+    # Prefer a dedicated water-only extract when present (e.g. produced for
+    # caches fetched before the Overpass query gained water clauses).
+    water_osm_path = citypack_dir / f"{city_id}_water_raw.osm"
+    if water_osm_path.exists():
+        print(f"      Using dedicated water extract: {water_osm_path.name}")
+        water = extract_water(water_osm_path, origin_lat, origin_lon)
+    else:
+        water = extract_water(osm_path, origin_lat, origin_lon)
     print(f"      Rivers: {water['river_count']}, Lakes: {water['lake_count']}, Coastlines: {water['coastline_count']}")
 
     # Step 8: Extract vegetation zones

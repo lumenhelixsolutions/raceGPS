@@ -40,9 +40,20 @@ SCRIPT_PATH = Path(__file__).resolve()
 REPO_ROOT = SCRIPT_PATH.parent.parent
 
 CITY_ID = os.environ.get("RACEGPS_CITY_ID", "cleveland_5.0km")
-SPEC_REL = f"generated/Cleveland5.0KmWorld_LevelSpec.json"
 BUNDLE_REL = f"generated/{CITY_ID}_ueimport.json"
 PROGRESS_REL = f"generated/{CITY_ID}_ueimport_progress.json"
+
+
+def find_spec_for_city(city_id: str) -> Path:
+    """Locate generated/*_LevelSpec.json matching the city_id."""
+    for sf in sorted((REPO_ROOT / "generated").glob("*_LevelSpec.json")):
+        try:
+            doc = json.loads(sf.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if doc.get("city_id") == city_id:
+            return sf
+    raise RuntimeError(f"no level spec found for city {city_id}")
 
 BUILDING_BATCH = 25000
 CUBE_SIZE_CM = 100.0   # /Engine/BasicShapes/Cube
@@ -270,8 +281,20 @@ def stage_buildings(bundle, prog):
 
     start = prog.get("building_index", 0)
     actor = find_actor_by_label("Buildings")
+    if actor is not None:
+        # Stale actor from an older/failed run with a mismatched BP (e.g. the
+        # pre-T6 shared BP_CityBuildings) -> drop it and rebuild from scratch.
+        existing = actor.get_components_by_class(unreal.HierarchicalInstancedStaticMeshComponent)
+        if len(existing) != len(used):
+            log(f"existing Buildings actor has {len(existing)} HISMs, expected {len(used)}; recreating")
+            unreal.EditorLevelLibrary.destroy_actor(actor)
+            actor = None
+            start = 0
     if actor is None:
-        cls = create_hism_bp("BP_CityBuildings", len(used))
+        # Per-city BP: the HISM count/order depends on which material buckets
+        # the city's buildings use, so a shared BP breaks cross-city.
+        bp_name = f"BP_CityBuildings_{sanitize_level_name(CITY_ID)}"
+        cls = create_hism_bp(bp_name, len(used))
         actor = unreal.EditorLevelLibrary.spawn_actor_from_class(cls, unreal.Vector(0, 0, 0))
         actor.set_actor_label("Buildings")
         cube = unreal.EditorAssetLibrary.load_asset("/Engine/BasicShapes/Cube")
@@ -331,8 +354,8 @@ def main() -> int:
         log(f"ERROR: bundle missing: {bundle_path} (run tools/ue5-city-import-prep.py first)")
         return 1
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-    spec_path = REPO_ROOT / os.environ.get("RACEGPS_LEVEL_SPEC", SPEC_REL)
-    map_name = sanitize_level_name(bundle.get("level_name") or "Cleveland5_0KmWorld")
+    spec_path = Path(os.environ.get("RACEGPS_LEVEL_SPEC", "")) if os.environ.get("RACEGPS_LEVEL_SPEC") else find_spec_for_city(CITY_ID)
+    map_name = sanitize_level_name(bundle.get("level_name") or f"{CITY_ID}World")
     package_path = f"/Game/Maps/{map_name}"
 
     prog = read_progress()

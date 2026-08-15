@@ -1,10 +1,16 @@
+import os
+
 import unreal
 
 def w(m):
     unreal.log_warning("[verify-t10] " + str(m))
 
+map_path = os.environ.get("RACEGPS_VERIFY_MAP", "/Game/Maps/Cleveland5_0KmWorld")
+if "/Game/" not in map_path:
+    # accept a bare map name (git-bash mangles leading slashes in env vars)
+    map_path = "/Game/Maps/" + map_path.rsplit("/", 1)[-1]
 subsys = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
-w("load: " + str(subsys.load_level("/Game/Maps/Cleveland5_0KmWorld")))
+w("load " + map_path + ": " + str(subsys.load_level(map_path)))
 actors = unreal.EditorLevelLibrary.get_all_level_actors()
 
 bp_gate = unreal.EditorAssetLibrary.load_blueprint_class("/Game/Blueprints/BP_CheckpointGate")
