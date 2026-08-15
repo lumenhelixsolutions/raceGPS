@@ -4,6 +4,14 @@
 #include "Engine/DataAsset.h"
 #include "VehicleTuningData.generated.h"
 
+UENUM(BlueprintType)
+enum class ERaceGPSDifferentialType : uint8
+{
+    AllWheelDrive  UMETA(DisplayName = "All Wheel Drive"),
+    FrontWheelDrive UMETA(DisplayName = "Front Wheel Drive"),
+    RearWheelDrive  UMETA(DisplayName = "Rear Wheel Drive"),
+};
+
 USTRUCT(BlueprintType)
 struct FWheelTuning
 {
@@ -76,7 +84,7 @@ struct FDifferentialTuning
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Differential")
-    TEnumAsByte<enum EVehicleDifferential> DifferentialType = EVehicleDifferential::LimitedSlip_4W;
+    ERaceGPSDifferentialType DifferentialType = ERaceGPSDifferentialType::AllWheelDrive;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Differential")
     float FrontRearSplit = 0.5f;

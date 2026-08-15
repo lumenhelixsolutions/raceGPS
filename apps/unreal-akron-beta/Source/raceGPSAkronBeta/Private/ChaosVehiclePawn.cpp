@@ -9,6 +9,16 @@
 #include "NeonHUD.h"
 #include "CruiseSprintGameMode.h"
 
+static EVehicleDifferential ToEngineDifferential(ERaceGPSDifferentialType Type)
+{
+    switch (Type)
+    {
+    case ERaceGPSDifferentialType::FrontWheelDrive: return EVehicleDifferential::FrontWheelDrive;
+    case ERaceGPSDifferentialType::RearWheelDrive:  return EVehicleDifferential::RearWheelDrive;
+    default:                                          return EVehicleDifferential::AllWheelDrive;
+    }
+}
+
 AChaosVehiclePawn::AChaosVehiclePawn(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
 {
@@ -46,12 +56,24 @@ AChaosVehiclePawn::AChaosVehiclePawn(const FObjectInitializer& ObjectInitializer
     // Audio
     AudioComponent = CreateDefaultSubobject<UVehicleAudioComponent>(TEXT("AudioComponent"));
 
+    // Default arcade steering curve (X = MPH, Y = fraction of max steer angle).
+    // Full lock at parking speeds, gentle falloff to keep highway speed stable.
+    FRichCurve* ArcadeCurve = ArcadeSteeringCurve.GetRichCurve();
+    ArcadeCurve->Reset();
+    ArcadeCurve->AddKey(0.0f, 1.0f);
+    ArcadeCurve->AddKey(40.0f, 0.85f);
+    ArcadeCurve->AddKey(80.0f, 0.6f);
+    ArcadeCurve->AddKey(140.0f, 0.45f);
+
     // Default vehicle mesh placeholder
-    static ConstructorHelpers::FObjectFinder<USkeletalMesh> VehicleMesh(TEXT("/Game/Vehicles/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
-    if (VehicleMesh.Succeeded())
-    {
-        GetMesh()->SetSkeletalMesh(VehicleMesh.Object);
-    }
+    // TODO: Import a real sedan skeletal mesh to /Game/Vehicles/Sedan/Sedan_SkelMesh
+    // (or point to your car-kit output). The finder below is commented to allow cooking
+    // while art/content is missing. The vehicle will have no visible mesh until fixed.
+    // static ConstructorHelpers::FObjectFinder<USkeletalMesh> VehicleMesh(TEXT("/Game/Vehicles/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
+    // if (VehicleMesh.Succeeded())
+    // {
+    //     GetMesh()->SetSkeletalMesh(VehicleMesh.Object);
+    // }
 }
 
 void AChaosVehiclePawn::BeginPlay()
@@ -59,6 +81,17 @@ void AChaosVehiclePawn::BeginPlay()
     Super::BeginPlay();
     InitChaosVehicleMovement();
     ApplyTuningData();
+
+    // Arcade tire/handling config applies whether or not TuningData is set,
+    // as long as the wheeled movement component and its WheelSetups exist.
+    if (bEnableArcadeHandling)
+    {
+        if (auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent()))
+        {
+            ApplyArcadeHandling(WheeledComp);
+        }
+    }
+
     UpdateCameraView();
 
     GetMesh()->OnComponentHit.AddDynamic(this, &AChaosVehiclePawn::OnVehicleHit);
@@ -72,12 +105,15 @@ void AChaosVehiclePawn::InitChaosVehicleMovement()
     // Ensure we have a proper physics setup for Chaos Vehicles
     MoveComp->StopMovementImmediately();
 
-    // Basic engine torque curve
-    MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->Reset();
-    MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(0.0f, 400.0f);
-    MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(2000.0f, 500.0f);
-    MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(4000.0f, 450.0f);
-    MoveComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(6000.0f, 300.0f);
+    // Basic engine torque curve (lives on the wheeled movement component in UE 5.7)
+    if (auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(MoveComp))
+    {
+        WheeledComp->EngineSetup.TorqueCurve.GetRichCurve()->Reset();
+        WheeledComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(0.0f, 400.0f);
+        WheeledComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(2000.0f, 500.0f);
+        WheeledComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(4000.0f, 450.0f);
+        WheeledComp->EngineSetup.TorqueCurve.GetRichCurve()->AddKey(6000.0f, 300.0f);
+    }
 }
 
 void AChaosVehiclePawn::SetTuningData(UVehicleTuningData* NewTuningData)
@@ -96,83 +132,199 @@ void AChaosVehiclePawn::ApplyTuningData()
     if (!MoveComp || !TuningData)
         return;
 
-    // Vehicle mass and aero
+    // Vehicle mass and aero (base movement component)
     MoveComp->Mass = TuningData->VehicleMass;
     MoveComp->DragCoefficient = TuningData->DragCoefficient;
     MoveComp->ChassisWidth = TuningData->ChassisWidth;
     MoveComp->ChassisHeight = TuningData->ChassisHeight;
     MoveComp->DownforceCoefficient = TuningData->DownForceCoefficient;
-    MoveComp->DownforceOffset = TuningData->DownForceOffset;
+
+    // Engine, transmission, differential and steering are on the wheeled movement component in UE 5.7
+    auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(MoveComp);
+    if (!WheeledComp)
+        return;
 
     // Engine
-    MoveComp->MaxEngineRPM = TuningData->MaxEngineRPM;
-    MoveComp->EngineSetup.MaxRPM = TuningData->MaxEngineRPM;
-    MoveComp->EngineSetup.IdleRPM = TuningData->IdleRPM;
-    MoveComp->EngineSetup.BrakeEffect = TuningData->BrakeTorque;
-
-    // Brake torque
-    MoveComp->BrakeTorque = TuningData->BrakeTorque;
-    MoveComp->HandbrakeTorque = TuningData->HandbrakeTorque;
+    WheeledComp->EngineSetup.MaxRPM = TuningData->MaxEngineRPM;
+    WheeledComp->EngineSetup.EngineIdleRPM = TuningData->IdleRPM;
+    WheeledComp->EngineSetup.EngineBrakeEffect = TuningData->BrakeTorque / 10000.0f;
+    WheeledComp->EngineSetup.MaxTorque = 500.0f;
 
     // Steering
-    MoveComp->SteeringSetup.SteeringCurve = TuningData->SteeringCurve;
-    MoveComp->SteeringSetup.AckermannAccuracy = TuningData->AckermannAccuracy;
+    WheeledComp->SteeringSetup.SteeringType = ESteeringType::Ackermann;
 
     // Transmission
-    MoveComp->TransmissionSetup.FinalRatio = TuningData->Transmission.FinalDriveRatio;
-    MoveComp->TransmissionSetup.ReverseGearRatio = TuningData->Transmission.ReverseGearRatio;
-    MoveComp->TransmissionSetup.UpShiftRPM = TuningData->Transmission.UpShiftRPM;
-    MoveComp->TransmissionSetup.DownShiftRPM = TuningData->Transmission.DownShiftRPM;
-    MoveComp->TransmissionSetup.ChangeUpTime = TuningData->Transmission.ChangeUpTime;
-    MoveComp->TransmissionSetup.ChangeDownTime = TuningData->Transmission.ChangeDownTime;
-    MoveComp->TransmissionSetup.GearRatios.Empty();
-    for (float Ratio : TuningData->Transmission.GearRatios)
-    {
-        FVehicleGearData Gear;
-        Gear.Ratio = Ratio;
-        Gear.DownRatio = TuningData->Transmission.DownShiftRPM / TuningData->MaxEngineRPM;
-        Gear.UpRatio = TuningData->Transmission.UpShiftRPM / TuningData->MaxEngineRPM;
-        MoveComp->TransmissionSetup.GearRatios.Add(Gear);
-    }
+    WheeledComp->TransmissionSetup.FinalRatio = TuningData->Transmission.FinalDriveRatio;
+    WheeledComp->TransmissionSetup.ForwardGearRatios = TuningData->Transmission.GearRatios;
+    WheeledComp->TransmissionSetup.ReverseGearRatios.Empty();
+    WheeledComp->TransmissionSetup.ReverseGearRatios.Add(TuningData->Transmission.ReverseGearRatio);
+    WheeledComp->TransmissionSetup.ChangeUpRPM = TuningData->Transmission.UpShiftRPM;
+    WheeledComp->TransmissionSetup.ChangeDownRPM = TuningData->Transmission.DownShiftRPM;
+    WheeledComp->TransmissionSetup.GearChangeTime = (TuningData->Transmission.ChangeUpTime + TuningData->Transmission.ChangeDownTime) * 0.5f;
 
     // Differential
-    MoveComp->DifferentialSetup.DifferentialType = TuningData->Differential.DifferentialType;
-    MoveComp->DifferentialSetup.FrontRearSplit = TuningData->Differential.FrontRearSplit;
-    MoveComp->DifferentialSetup.FrontLeftRightSplit = TuningData->Differential.FrontLeftRightSplit;
-    MoveComp->DifferentialSetup.RearLeftRightSplit = TuningData->Differential.RearLeftRightSplit;
-    MoveComp->DifferentialSetup.CentreBias = TuningData->Differential.CentreBias;
-    MoveComp->DifferentialSetup.FrontBias = TuningData->Differential.FrontBias;
-    MoveComp->DifferentialSetup.RearBias = TuningData->Differential.RearBias;
+    WheeledComp->DifferentialSetup.DifferentialType = ToEngineDifferential(TuningData->Differential.DifferentialType);
+    WheeledComp->DifferentialSetup.FrontRearSplit = TuningData->Differential.FrontRearSplit;
 
     // Wheels
-    for (int32 i = 0; i < TuningData->Wheels.Num() && i < MoveComp->WheelSetups.Num(); ++i)
+    for (int32 i = 0; i < TuningData->Wheels.Num() && i < WheeledComp->WheelSetups.Num(); ++i)
     {
-        SetupWheel(i, TuningData->Wheels[i]);
+        SetupWheel(WheeledComp, i, TuningData->Wheels[i]);
     }
 }
 
-void AChaosVehiclePawn::SetupWheel(int32 WheelIndex, const FWheelTuning& Wheel)
+void AChaosVehiclePawn::SetupWheel(UChaosWheeledVehicleMovementComponent* WheeledComp, int32 WheelIndex, const FWheelTuning& Wheel)
 {
-    auto* MoveComp = GetVehicleMovementComponent();
-    if (!MoveComp || WheelIndex >= MoveComp->WheelSetups.Num())
+    if (!WheeledComp || WheelIndex >= WheeledComp->WheelSetups.Num())
         return;
 
-    FChaosWheelSetup& Setup = MoveComp->WheelSetups[WheelIndex];
-    Setup.WheelRadius = Wheel.Radius;
-    Setup.WheelWidth = Wheel.Width;
-    Setup.WheelMass = Wheel.Mass;
-    Setup.bSteerable = Wheel.SteerAngle != 0.0f;
-    Setup.bDriven = Wheel.bDrive;
-    Setup.bHandbrake = Wheel.bHandbrake;
+    // In UE 5.7 wheel shape configuration lives on the UChaosVehicleWheel class default object.
+    FChaosWheelSetup& Setup = WheeledComp->WheelSetups[WheelIndex];
+    UClass* WheelClass = Setup.WheelClass ? static_cast<UClass*>(Setup.WheelClass) : UChaosVehicleWheel::StaticClass();
+    UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+    if (!WheelCDO)
+    {
+        return;
+    }
+
+    WheelCDO->WheelRadius = Wheel.Radius;
+    WheelCDO->WheelWidth = Wheel.Width;
+    WheelCDO->WheelMass = Wheel.Mass;
+    WheelCDO->MaxSteerAngle = Wheel.SteerAngle;
+    WheelCDO->bAffectedBySteering = Wheel.SteerAngle != 0.0f;
+    WheelCDO->bAffectedByEngine = Wheel.bDrive;
+    WheelCDO->bAffectedByHandbrake = Wheel.bHandbrake;
 
     // Suspension
-    if (Setup.Suspension)
+    WheelCDO->SpringRate = Wheel.SuspensionStiffness;
+    WheelCDO->SuspensionDampingRatio = Wheel.SuspensionDamping;
+    WheelCDO->SuspensionMaxRaise = Wheel.MaxRaise;
+    WheelCDO->SuspensionMaxDrop = Wheel.MaxDrop;
+    WheelCDO->SuspensionForceOffset = FVector(0.0f, 0.0f, Wheel.SuspensionForceOffset);
+}
+
+void AChaosVehiclePawn::ApplyArcadeHandling(UChaosWheeledVehicleMovementComponent* WheeledComp)
+{
+    if (!WheeledComp)
+        return;
+
+    const int32 NumWheels = WheeledComp->WheelSetups.Num();
+    if (NumWheels == 0)
+        return;
+
+    // Capture each wheel class's authored friction once, before any scaling, so
+    // repeated calls (e.g. SetTuningData re-applying) never compound the multiplier.
+    if (BaseWheelFriction.Num() != NumWheels)
     {
-        Setup.Suspension->SpringRate = Wheel.SuspensionStiffness;
-        Setup.Suspension->DampingRatio = Wheel.SuspensionDamping;
-        Setup.Suspension->MaxRaise = Wheel.MaxRaise;
-        Setup.Suspension->MaxDrop = Wheel.MaxDrop;
-        Setup.Suspension->SuspensionForceOffset = Wheel.SuspensionForceOffset;
+        BaseWheelFriction.SetNum(NumWheels);
+        for (int32 i = 0; i < NumWheels; ++i)
+        {
+            UClass* WheelClass = WheeledComp->WheelSetups[i].WheelClass
+                ? static_cast<UClass*>(WheeledComp->WheelSetups[i].WheelClass)
+                : UChaosVehicleWheel::StaticClass();
+            const UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+            BaseWheelFriction[i] = WheelCDO ? WheelCDO->FrictionForceMultiplier : 2.0f; // 2.0 = UChaosVehicleWheel ctor default
+        }
+    }
+    LastAppliedWheelFriction.Init(0.0f, NumWheels);
+
+    for (int32 i = 0; i < NumWheels; ++i)
+    {
+        FChaosWheelSetup& Setup = WheeledComp->WheelSetups[i];
+        UClass* WheelClass = Setup.WheelClass ? static_cast<UClass*>(Setup.WheelClass) : UChaosVehicleWheel::StaticClass();
+        UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+        if (!WheelCDO)
+        {
+            continue;
+        }
+
+        const float EffectiveFriction = BaseWheelFriction[i] * LateralGripMultiplier;
+
+        // Static tire params on the wheel CDO. The Chaos wheel sim reads SideSlipModifier
+        // (and Slip/SkidThreshold) live through a config pointer; GetPhysicsWheelConfig()
+        // re-fills that config in place so the running sim picks the values up.
+        WheelCDO->FrictionForceMultiplier = EffectiveFriction;
+        WheelCDO->SideSlipModifier = DriftGripRetention;
+        WheelCDO->bABSEnabled = bEnableABS;
+        WheelCDO->GetPhysicsWheelConfig();
+
+        // Keep the per-instance wheel object (Wheels[i]) consistent for debug/telemetry reads.
+        if (WheeledComp->Wheels.IsValidIndex(i) && WheeledComp->Wheels[i])
+        {
+            WheeledComp->Wheels[i]->FrictionForceMultiplier = EffectiveFriction;
+            WheeledComp->Wheels[i]->SideSlipModifier = DriftGripRetention;
+            WheeledComp->Wheels[i]->bABSEnabled = bEnableABS;
+        }
+
+        // FrictionMultiplier is COPIED into the physics sim at vehicle creation, so the
+        // CDO edit alone is not enough — push it through the runtime setter (physics-thread safe).
+        // No-op if the physics state is not created yet; creation then snapshots the CDO value above.
+        WheeledComp->SetWheelFrictionMultiplier(i, EffectiveFriction);
+        WheeledComp->SetABSEnabled(i, bEnableABS);
+        LastAppliedWheelFriction[i] = EffectiveFriction;
+    }
+
+    // Optional speed-sensitive steering assist. SteeringSetup.GetPhysicsSteeringConfig()
+    // re-fills the steering config in place; the steering sim reads it live via pointer.
+    if (bUseArcadeSteeringCurve)
+    {
+        FRichCurve* SrcCurve = ArcadeSteeringCurve.GetRichCurve();
+        if (SrcCurve && SrcCurve->GetNumKeys() > 0)
+        {
+            FRichCurve* DstCurve = WheeledComp->SteeringSetup.SteeringCurve.GetRichCurve();
+            DstCurve->Reset();
+            for (auto KeyIt = SrcCurve->GetKeyHandleIterator(); KeyIt; ++KeyIt)
+            {
+                const FRichCurveKey& Key = SrcCurve->GetKey(*KeyIt);
+                DstCurve->AddKey(Key.Time, Key.Value);
+            }
+            // GetWheelLayoutDimensions() is protected on the component; replicate
+            // UChaosWheeledVehicleMovementComponent::CalculateWheelLayoutDimensions()
+            // here using the public LocateBoneOffset() helper (full width/length, not half).
+            FVector2D LayoutDims(0.f, 0.f);
+            for (const FChaosWheelSetup& WheelSetup : WheeledComp->WheelSetups)
+            {
+                UClass* WheelClass = WheelSetup.WheelClass ? static_cast<UClass*>(WheelSetup.WheelClass) : UChaosVehicleWheel::StaticClass();
+                const UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+                const FVector ExtraOffset = (WheelCDO ? WheelCDO->Offset : FVector::ZeroVector) + WheelSetup.AdditionalOffset;
+                const FVector RestingPos = WheeledComp->LocateBoneOffset(WheelSetup.BoneName, ExtraOffset);
+                LayoutDims.X = FMath::Max(LayoutDims.X, FMath::Abs(RestingPos.X));
+                LayoutDims.Y = FMath::Max(LayoutDims.Y, FMath::Abs(RestingPos.Y));
+            }
+            LayoutDims *= 2.0f;
+            WheeledComp->SteeringSetup.GetPhysicsSteeringConfig(LayoutDims);
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Arcade handling applied: grip x%.2f, drift retention %.2f, drift scale %.2f past %.0f deg, speed reduction %.2f @ %.0f km/h, ABS %d, steering curve %d"),
+        LateralGripMultiplier, DriftGripRetention, DriftFrictionScale, DriftAngleThresholdDeg,
+        SpeedGripReductionFactor, SpeedGripReductionMaxSpeedKmh, bEnableABS ? 1 : 0, bUseArcadeSteeringCurve ? 1 : 0);
+}
+
+void AChaosVehiclePawn::UpdateArcadeGrip(UChaosWheeledVehicleMovementComponent* WheeledComp, float DeltaTime)
+{
+    if (!WheeledComp || BaseWheelFriction.Num() == 0)
+        return;
+
+    // Speed-sensitive grip reduction: linear falloff up to SpeedGripReductionMaxSpeedKmh.
+    const float SpeedKmh = GetSpeedKmh();
+    const float SpeedAlpha = FMath::Clamp(SpeedKmh / FMath::Max(SpeedGripReductionMaxSpeedKmh, 1.0f), 0.0f, 1.0f);
+    const float SpeedGripScale = 1.0f - SpeedGripReductionFactor * SpeedAlpha;
+
+    // Drift grip: ease toward DriftFrictionScale while sliding past the threshold.
+    const float DriftTarget = (FMath::Abs(CalculateDriftAngle()) > DriftAngleThresholdDeg) ? DriftFrictionScale : 1.0f;
+    CurrentDriftGripScale = FMath::FInterpTo(CurrentDriftGripScale, DriftTarget, DeltaTime, 3.0f);
+
+    const int32 NumWheels = FMath::Min(BaseWheelFriction.Num(), WheeledComp->WheelSetups.Num());
+    for (int32 i = 0; i < NumWheels; ++i)
+    {
+        const float Target = BaseWheelFriction[i] * LateralGripMultiplier * SpeedGripScale * CurrentDriftGripScale;
+        // Only push when the change is meaningful; each call enqueues a physics command.
+        if (FMath::Abs(Target - LastAppliedWheelFriction[i]) > 0.01f)
+        {
+            WheeledComp->SetWheelFrictionMultiplier(i, Target);
+            LastAppliedWheelFriction[i] = Target;
+        }
     }
 }
 
@@ -196,12 +348,6 @@ void AChaosVehiclePawn::Tick(float DeltaTime)
                 FinalSteering = FMath::Lerp(FinalSteering, CounterSteer, 0.3f);
             }
 
-            // Increase handbrake torque for drift factor
-            MoveComp->HandbrakeTorque = TuningData->HandbrakeTorque * TuningData->HandbrakeDriftFactor;
-        }
-        else if (TuningData)
-        {
-            MoveComp->HandbrakeTorque = TuningData->HandbrakeTorque;
         }
 
         // Traction control: reduce throttle when wheel slip is high
@@ -219,6 +365,15 @@ void AChaosVehiclePawn::Tick(float DeltaTime)
         MoveComp->SetSteeringInput(FinalSteering);
         MoveComp->SetBrakeInput(CurrentBrake);
         MoveComp->SetHandbrakeInput(bHandbrake);
+
+        // Dynamic arcade grip: speed-sensitive reduction + drift friction scale
+        if (bEnableArcadeHandling)
+        {
+            if (auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(MoveComp))
+            {
+                UpdateArcadeGrip(WheeledComp, DeltaTime);
+            }
+        }
     }
 
     // Update audio with brake state
@@ -234,10 +389,6 @@ void AChaosVehiclePawn::Tick(float DeltaTime)
         {
             HUD->SetSpeedKmh(GetSpeedKmh());
             HUD->SetTelemetry(GetEngineRPM(), GetCurrentGear());
-            if (TuningData)
-            {
-                HUD->SetDriftAngle(CalculateDriftAngle());
-            }
         }
     }
 }
@@ -249,8 +400,8 @@ void AChaosVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAxis(TEXT("Throttle"), this, &AChaosVehiclePawn::SetThrottleInput);
     PlayerInputComponent->BindAxis(TEXT("Steer"), this, &AChaosVehiclePawn::SetSteeringInput);
     PlayerInputComponent->BindAxis(TEXT("Brake"), this, &AChaosVehiclePawn::SetBrakeInput);
-    PlayerInputComponent->BindAction(TEXT("Handbrake"), IE_Pressed, this, &AChaosVehiclePawn::SetHandbrakeInput, true);
-    PlayerInputComponent->BindAction(TEXT("Handbrake"), IE_Released, this, &AChaosVehiclePawn::SetHandbrakeInput, false);
+    PlayerInputComponent->BindAction(TEXT("Handbrake"), IE_Pressed, this, &AChaosVehiclePawn::HandbrakePressed);
+    PlayerInputComponent->BindAction(TEXT("Handbrake"), IE_Released, this, &AChaosVehiclePawn::HandbrakeReleased);
     PlayerInputComponent->BindAction(TEXT("ResetVehicle"), IE_Pressed, this, &AChaosVehiclePawn::ResetVehicle);
     PlayerInputComponent->BindAction(TEXT("ToggleCamera"), IE_Pressed, this, &AChaosVehiclePawn::ToggleCamera);
 }
@@ -273,6 +424,16 @@ void AChaosVehiclePawn::SetBrakeInput(float Value)
 void AChaosVehiclePawn::SetHandbrakeInput(bool bActive)
 {
     bHandbrake = bActive;
+}
+
+void AChaosVehiclePawn::HandbrakePressed()
+{
+    bHandbrake = true;
+}
+
+void AChaosVehiclePawn::HandbrakeReleased()
+{
+    bHandbrake = false;
 }
 
 void AChaosVehiclePawn::ResetVehicle()
@@ -318,8 +479,8 @@ float AChaosVehiclePawn::GetSpeedKmh() const
 
 float AChaosVehiclePawn::GetEngineRPM() const
 {
-    auto* MoveComp = GetVehicleMovementComponent();
-    return MoveComp ? MoveComp->GetEngineRotationSpeed() : 0.0f;
+    auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+    return WheeledComp ? WheeledComp->GetEngineRotationSpeed() : 0.0f;
 }
 
 int32 AChaosVehiclePawn::GetCurrentGear() const
@@ -357,26 +518,26 @@ float AChaosVehiclePawn::CalculateDriftAngle() const
 
 float AChaosVehiclePawn::CalculateWheelSlipRatio() const
 {
-    auto* MoveComp = GetVehicleMovementComponent();
-    if (!MoveComp)
+    auto* WheeledComp = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent());
+    if (!WheeledComp)
         return 0.0f;
 
     float MaxSlip = 0.0f;
-    for (const FChaosWheelSetup& WheelSetup : MoveComp->WheelSetups)
+    float LinearSpeed = FMath::Max(GetSpeedKmh() / 3.6f, 0.0f); // m/s
+    for (UChaosVehicleWheel* Wheel : WheeledComp->Wheels)
     {
-        if (WheelSetup.VehicleSim)
+        if (!Wheel)
         {
-            // Approximate slip from angular vs linear velocity
-            float WheelRadius = WheelSetup.WheelRadius;
-            float AngularSpeed = FMath::Abs(WheelSetup.VehicleSim->GetRotationSpeed());
-            float LinearSpeed = GetSpeedKmh() / 3.6f; // m/s
-            float TheoreticalSpeed = AngularSpeed * WheelRadius;
+            continue;
+        }
+        float WheelRadius = Wheel->WheelRadius;
+        float AngularSpeed = FMath::Abs(Wheel->GetWheelAngularVelocity());
+        float TheoreticalSpeed = AngularSpeed * WheelRadius;
 
-            if (TheoreticalSpeed > 1.0f)
-            {
-                float Slip = FMath::Abs(TheoreticalSpeed - LinearSpeed) / TheoreticalSpeed;
-                MaxSlip = FMath::Max(MaxSlip, Slip);
-            }
+        if (TheoreticalSpeed > 1.0f)
+        {
+            float Slip = FMath::Abs(TheoreticalSpeed - LinearSpeed) / TheoreticalSpeed;
+            MaxSlip = FMath::Max(MaxSlip, Slip);
         }
     }
     return MaxSlip;

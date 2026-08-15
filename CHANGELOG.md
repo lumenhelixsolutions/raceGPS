@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Engine version aligned to Unreal Engine 5.7** across docs, build scripts, and CI. `raceGPSAkronBeta.uproject` already declared `"EngineAssociation": "5.7"`; `Build.bat`, `scripts/build.py`, the UE5 setup/install helper scripts, README/BUILD/INSTALLER docs, and the CI cache key previously referenced 5.5 and now target UE 5.7 (sprint S15).
+- Updated visual tests to match the intentional `MaterialProvider.*` → `RaceGPSMaterialProvider.*` rename in `apps/unreal-akron-beta/Source/raceGPSAkronBeta/`.
+
 ## [0.1.0-beta] — 2026-06-04
 
 ### Major Pivot

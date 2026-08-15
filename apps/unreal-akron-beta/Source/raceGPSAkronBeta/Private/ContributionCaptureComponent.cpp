@@ -243,3 +243,8 @@ FString UContributionCaptureComponent::GetQueuePath() const
 {
     return FPaths::ProjectSavedDir() / TEXT("contribution_queue.json");
 }
+
+void UContributionCaptureComponent::OnSyncComplete(bool bSuccess, const FString& Response)
+{
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Contribution sync complete: %d - %s"), bSuccess, *Response);
+}

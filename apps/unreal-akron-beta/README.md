@@ -1,6 +1,6 @@
 # raceGPS Akron Beta — Unreal Engine 5
 
-Commercial-grade driving slice for Akron, Ohio. Built on **Unreal Engine 5.5** with **Chaos Vehicles**, **ProceduralMeshComponent**, and **OpenDRIVE** semantic ingestion via a pure-Python compiler pipeline.
+Commercial-grade driving slice for Akron, Ohio. Built on **Unreal Engine 5.7** with **Chaos Vehicles**, **ProceduralMeshComponent**, and **OpenDRIVE** semantic ingestion via a pure-Python compiler pipeline.
 
 ---
 
@@ -42,7 +42,7 @@ Commercial-grade driving slice for Akron, Ohio. Built on **Unreal Engine 5.5** w
 
 ### Prerequisites
 
-- Unreal Engine 5.5 (via Epic Games Launcher or source)
+- Unreal Engine 5.7 (via Epic Games Launcher or source)
 - Visual Studio 2022 with "Game development with C++" workload
 - Windows SDK 10.0.22000+
 - Python 3.10+ (for semantic compiler)
@@ -68,7 +68,7 @@ The batch script:
    ```powershell
    # Right-click raceGPSAkronBeta.uproject → Generate Visual Studio project files
    # OR via command line:
-   "C:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
+   "C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
      -projectfiles -project="D:\projects\racegps\apps\unreal-akron-beta\raceGPSAkronBeta.uproject" `
      -game -engine -progress
    ```
@@ -301,7 +301,7 @@ All coordinates in the JSON are **WGS84 (lat, lon)**. The `AkronXodrImporter` co
 
 ### Prerequisites
 
-- Unreal Engine 5.5 Editor (with **Python Editor Script Plugin** enabled)
+- Unreal Engine 5.7 Editor (with **Python Editor Script Plugin** enabled)
 - Generated level spec (`generated/AkronWorld_LevelSpec.json`)
 
 ### Step 1: Generate the Level Spec

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "FindSessionsCallbackProxy.h"
 #include "LANSessionManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLANSessionFound, const TArray<FBlueprintSessionResult>&, Results);

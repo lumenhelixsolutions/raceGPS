@@ -5,15 +5,15 @@
 #include "Engine/Engine.h"
 #include "Scalability.h"
 
-void USettingsAutoConfigurator::ApplyPreset(EGraphicsPreset Preset)
+void USettingsAutoConfigurator::ApplyPreset(ERaceGPSGraphicsPreset Preset)
 {
     int32 QualityLevel = 2; // Medium default
     switch (Preset)
     {
-    case EGraphicsPreset::Low:    QualityLevel = 0; break;
-    case EGraphicsPreset::Medium: QualityLevel = 2; break;
-    case EGraphicsPreset::High:   QualityLevel = 3; break;
-    case EGraphicsPreset::Ultra:  QualityLevel = 4; break;
+    case ERaceGPSGraphicsPreset::Low:    QualityLevel = 0; break;
+    case ERaceGPSGraphicsPreset::Medium: QualityLevel = 2; break;
+    case ERaceGPSGraphicsPreset::High:   QualityLevel = 3; break;
+    case ERaceGPSGraphicsPreset::Ultra:  QualityLevel = 4; break;
     }
     SetScalabilitySettings(QualityLevel);
     SetResolutionSettings();
@@ -24,13 +24,13 @@ void USettingsAutoConfigurator::ApplyRecommendedPreset()
     ApplyPreset(GetRecommendedPresetEnum());
 }
 
-EGraphicsPreset USettingsAutoConfigurator::GetRecommendedPresetEnum()
+ERaceGPSGraphicsPreset USettingsAutoConfigurator::GetRecommendedPresetEnum()
 {
     FString PresetStr = UPreflightSystem::GetRecommendedGraphicsPreset();
-    if (PresetStr == TEXT("Ultra")) return EGraphicsPreset::Ultra;
-    if (PresetStr == TEXT("High"))  return EGraphicsPreset::High;
-    if (PresetStr == TEXT("Low"))   return EGraphicsPreset::Low;
-    return EGraphicsPreset::Medium;
+    if (PresetStr == TEXT("Ultra")) return ERaceGPSGraphicsPreset::Ultra;
+    if (PresetStr == TEXT("High"))  return ERaceGPSGraphicsPreset::High;
+    if (PresetStr == TEXT("Low"))   return ERaceGPSGraphicsPreset::Low;
+    return ERaceGPSGraphicsPreset::Medium;
 }
 
 void USettingsAutoConfigurator::SetScalabilitySettings(int32 QualityLevel)

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "FindSessionsCallbackProxy.h"
 #include "LANBrowserWidget.generated.h"
 
 UCLASS()
@@ -89,5 +90,5 @@ protected:
     int32 SelectedSessionIndex = -1;
 
     UFUNCTION()
-    void UpdateMaxPlayersDisplay();
+    void UpdateMaxPlayersDisplay(float NewValue = 0.0f);
 };

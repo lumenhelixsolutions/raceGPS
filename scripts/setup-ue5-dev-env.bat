@@ -4,7 +4,7 @@ REM Auto-elevating launcher for the PowerShell setup script.
 REM Double-click this file — it will request Administrator permissions automatically.
 
 echo ==========================================
-echo raceGPS UE5.5 Dev Environment Setup
+echo raceGPS UE5.7 Dev Environment Setup
 echo ==========================================
 echo.
 

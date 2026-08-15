@@ -5,6 +5,8 @@ Validates rendering configs, material descriptors, asset standards, and C++ visu
 import json
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_DIR = PROJECT_ROOT / "apps" / "unreal-akron-beta"
 SOURCE_DIR = APP_DIR / "Source" / "raceGPSAkronBeta"
@@ -34,7 +36,7 @@ def test_default_engine_rendering_settings():
 
 
 def test_material_provider_header():
-    path = SOURCE_DIR / "Public" / "MaterialProvider.h"
+    path = SOURCE_DIR / "Public" / "RaceGPSMaterialProvider.h"
     assert path.exists()
     content = path.read_text()
     assert "EMasterMaterialType" in content
@@ -164,7 +166,7 @@ def test_master_material_descriptor_schema():
 
 def test_material_provider_paths_match_descriptors():
     """MaterialProvider C++ paths should match generated descriptor names."""
-    provider_path = SOURCE_DIR / "Private" / "MaterialProvider.cpp"
+    provider_path = SOURCE_DIR / "Private" / "RaceGPSMaterialProvider.cpp"
     assert provider_path.exists()
     provider_src = provider_path.read_text()
 

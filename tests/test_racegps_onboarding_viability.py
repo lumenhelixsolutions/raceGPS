@@ -3,6 +3,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PRE_H = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Public" / "PreflightSystem.h"
 PRE_CPP = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Private" / "PreflightSystem.cpp"
+IMPORTER_CPP = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Private" / "AkronXodrImporter.cpp"
 ONBOARD_CPP = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Private" / "OnboardingManager.cpp"
 MENU_CPP = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Private" / "MainMenuWidget.cpp"
 CRUISE_CPP = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "Source" / "raceGPSAkronBeta" / "Private" / "CruiseSprintGameMode.cpp"
@@ -12,11 +13,22 @@ README = PROJECT_ROOT / "apps" / "unreal-akron-beta" / "README.md"
 def test_preflight_summary_exposes_viability_gate_and_required_paths():
     header = PRE_H.read_text(encoding="utf-8")
     source = PRE_CPP.read_text(encoding="utf-8")
+    importer = IMPORTER_CPP.read_text(encoding="utf-8")
 
     assert 'bool bCanLaunch = false;' in header
     assert 'Summary.bCanLaunch = Summary.FailCount == 0;' in source
-    assert 'akron_routes.json' in source
-    assert 'AkronWorld_LevelSpec.json' in source
+
+    # Citypack paths are resolved from the active city (config/cvar/command
+    # line) rather than hardcoded to Akron.
+    assert 'UAkronXodrImporter::GetActiveCityId()' in source
+    assert 'UAkronXodrImporter::ResolveCityLayout(Layout)' in source
+    assert 'Layout.ManifestPath' in source
+    assert 'Layout.RoutesPath' in source
+    assert 'Layout.LevelSpecPath' in source
+    assert 'akron_routes.json' not in source
+
+    # Akron remains the built-in default when nothing is configured.
+    assert 'RACEGPS_DEFAULT_CITY_ID = TEXT("akron-oh-beta-001")' in importer
 
 
 def test_save_directory_check_does_not_false_pass_not_writable():

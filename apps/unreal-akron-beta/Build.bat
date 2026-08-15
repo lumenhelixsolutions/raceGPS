@@ -1,6 +1,6 @@
 @echo off
 REM raceGPS Akron Beta — Windows Build Script
-REM Requires: Unreal Engine 5.5, Visual Studio 2022, Windows SDK
+REM Requires: Unreal Engine 5.7, Visual Studio 2022, Windows SDK
 
 setlocal enabledelayedexpansion
 
@@ -39,15 +39,16 @@ if not exist "%UMAP%" (
     )
 )
 
-REM Find UE5 engine
-if exist "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat" (
-    set UE5_BUILD="C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat"
-) else if exist "C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\Build.bat" (
-    set UE5_BUILD="C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\Build.bat"
-) else (
-    echo ERROR: Unreal Engine 5 not found.
-    echo Please install UE5.5 via Epic Games Launcher or set UE5_BUILD manually.
-    exit /b 1
+REM Find UE 5.7 engine (set UE5_BUILD to the engine's Build.bat to override auto-detection)
+if not defined UE5_BUILD (
+    if exist "%PROGRAMFILES%\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" (
+        set UE5_BUILD="%PROGRAMFILES%\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat"
+    ) else (
+        echo ERROR: Unreal Engine 5.7 not found.
+        echo Expected at: %PROGRAMFILES%\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat
+        echo Install UE 5.7 via the Epic Games Launcher, or set UE5_BUILD manually.
+        exit /b 1
+    )
 )
 
 REM Step 1: Generate project files
@@ -70,9 +71,11 @@ if errorlevel 1 (
 
 REM Step 3: Cook content
 echo [3/4] Cooking content for Windows...
-set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat"
+REM RunUAT.bat lives next to Build.bat in the same engine install
+for %%I in (%UE5_BUILD%) do set UE5_RUNUAT="%%~dpIRunUAT.bat"
 if not exist %UE5_RUNUAT% (
-    set UE5_RUNUAT="C:\Program Files\Epic Games\UE_5.4\Engine\Build\BatchFiles\RunUAT.bat"
+    echo ERROR: RunUAT.bat not found at %UE5_RUNUAT%.
+    exit /b 1
 )
 
 call %UE5_RUNUAT% BuildCookRun -project="%UPROJECT%" -noP4 -platform=%TARGET_PLATFORM% -clientconfig=%BUILD_CONFIG% -serverconfig=%BUILD_CONFIG% -cook -allmaps -stage -pak -archive -archivedirectory="%OUTPUT_DIR%"

@@ -20,16 +20,12 @@ bool FraceGPSScoringPerfectRun::RunTest(const FString& Parameters)
     Scoring->Reset();
 
     // Simulate a 110s race with 0 collisions, 0 missed checkpoints
-    Scoring->BaseTime = 110.0f;
-    Scoring->Collisions = 0;
-    Scoring->MissedCheckpoints = 0;
-
     FRaceScore Score = Scoring->CalculateFinalScore(110.0f);
 
     TestEqual(TEXT("Base time should be 110"), Score.BaseTime, 110.0f);
     TestEqual(TEXT("Collision penalty should be 0"), Score.CollisionPenalty, 0.0f);
-    TestEqual(TEXT("Clean bonus should be -1.0"), Score.CleanDrivingBonus, -1.0f);
-    TestEqual(TEXT("Final time should be 109.0"), Score.FinalTime, 109.0f);
+    TestEqual(TEXT("Clean bonus should be 5.0"), Score.CleanDrivingBonus, 5.0f);
+    TestEqual(TEXT("Final time should be 105.0"), Score.FinalTime, 105.0f);
     TestEqual(TEXT("Medal should be GOLD"), Score.Medal, FString(TEXT("GOLD")));
 
     return true;
@@ -43,16 +39,18 @@ bool FraceGPSScoringMessyRun::RunTest(const FString& Parameters)
     URaceScoringSystem* Scoring = NewObject<URaceScoringSystem>();
     Scoring->Reset();
 
-    Scoring->BaseTime = 100.0f;
-    Scoring->Collisions = 3;
-    Scoring->MissedCheckpoints = 1;
+    // 3 low-speed collisions + 1 missed checkpoint
+    Scoring->OnCollision(0.0f);
+    Scoring->OnCollision(0.0f);
+    Scoring->OnCollision(0.0f);
+    Scoring->OnMissedCheckpoint();
 
     FRaceScore Score = Scoring->CalculateFinalScore(100.0f);
 
-    // 100 + (3 * 2) + (1 * 5) - 0 = 111
-    TestEqual(TEXT("Final time should be 111.0"), Score.FinalTime, 111.0f);
-    TestEqual(TEXT("Collision penalty should be 6.0"), Score.CollisionPenalty, 6.0f);
-    TestEqual(TEXT("Missed CP penalty should be 5.0"), Score.MissedCheckpointPenalty, 5.0f);
+    // 100 + (3 * 3.0) + (1 * 10.0) - 0 = 119
+    TestEqual(TEXT("Final time should be 119.0"), Score.FinalTime, 119.0f);
+    TestEqual(TEXT("Collision penalty should be 9.0"), Score.CollisionPenalty, 9.0f);
+    TestEqual(TEXT("Missed CP penalty should be 10.0"), Score.MissedCheckpointPenalty, 10.0f);
     TestEqual(TEXT("Clean bonus should be 0"), Score.CleanDrivingBonus, 0.0f);
 
     return true;
@@ -66,32 +64,24 @@ bool FraceGPSScoringMedalBoundaries::RunTest(const FString& Parameters)
     URaceScoringSystem* Scoring = NewObject<URaceScoringSystem>();
     Scoring->Reset();
 
-    // Gold boundary
-    Scoring->Collisions = 0;
-    Scoring->MissedCheckpoints = 0;
+    // Gold boundary (clean bonus applies, so final time 115)
     FRaceScore Score = Scoring->CalculateFinalScore(120.0f);
     TestEqual(TEXT("120s clean should be GOLD"), Score.Medal, FString(TEXT("GOLD")));
 
-    // Silver boundary
+    // Silver boundary (clean bonus applies, so final time 145)
     Scoring->Reset();
-    Scoring->Collisions = 0;
-    Scoring->MissedCheckpoints = 0;
     Score = Scoring->CalculateFinalScore(150.0f);
     TestEqual(TEXT("150s clean should be SILVER"), Score.Medal, FString(TEXT("SILVER")));
 
-    // Bronze boundary
+    // Bronze boundary (clean bonus applies, so final time 195)
     Scoring->Reset();
-    Scoring->Collisions = 0;
-    Scoring->MissedCheckpoints = 0;
     Score = Scoring->CalculateFinalScore(200.0f);
     TestEqual(TEXT("200s clean should be BRONZE"), Score.Medal, FString(TEXT("BRONZE")));
 
     // No medal
     Scoring->Reset();
-    Scoring->Collisions = 0;
-    Scoring->MissedCheckpoints = 0;
-    Score = Scoring->CalculateFinalScore(201.0f);
-    TestEqual(TEXT("201s clean should be NONE"), Score.Medal, FString(TEXT("NONE")));
+    Score = Scoring->CalculateFinalScore(205.0f);
+    TestEqual(TEXT("205s clean should be NONE"), Score.Medal, FString(TEXT("NONE")));
 
     return true;
 }

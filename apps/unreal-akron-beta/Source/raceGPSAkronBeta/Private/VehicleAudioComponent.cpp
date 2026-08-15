@@ -2,6 +2,7 @@
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "ChaosVehiclePawn.h"
+#include "Kismet/GameplayStatics.h"
 
 UVehicleAudioComponent::UVehicleAudioComponent()
 {

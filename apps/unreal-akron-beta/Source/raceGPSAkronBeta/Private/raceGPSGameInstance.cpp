@@ -67,11 +67,11 @@ void UraceGPSGameInstance::LoadSettings()
     Root->TryGetStringField(TEXT("LastSelectedVehicle"), LastSelectedVehicle);
     Root->TryGetStringField(TEXT("LastSelectedHandlingMode"), LastSelectedHandlingMode);
 
-    TSharedPtr<FJsonObject> BestTimesObj;
-    if (Root->TryGetObjectField(TEXT("BestTimes"), BestTimesObj))
+    const TSharedPtr<FJsonObject>* BestTimesObj = nullptr;
+    if (Root->TryGetObjectField(TEXT("BestTimes"), BestTimesObj) && BestTimesObj)
     {
         BestTimes.Empty();
-        for (const auto& Pair : BestTimesObj->Values)
+        for (const auto& Pair : (*BestTimesObj)->Values)
         {
             double Time = 0.0;
             if (Pair.Value->TryGetNumber(Time))

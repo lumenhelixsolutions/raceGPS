@@ -5,6 +5,37 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+# Meters of vertical offset applied per OSM layer level so the UE5 importer
+# can render bridges above / tunnels below crossing roads.
+LAYER_HEIGHT_M = 5.0
+
+_FALSY_TAG_VALUES = ("", "no", "false", "0")
+
+
+def _is_truthy_tag(val: str | None) -> bool:
+    """OSM tag presence check: bridge=yes/viaduct/... vs bridge=no/absent."""
+    return (val or "").strip().lower() not in _FALSY_TAG_VALUES
+
+
+def _parse_layer(tags: dict) -> int:
+    """Resolve the effective OSM layer for a way.
+
+    An explicit numeric `layer` tag wins. Otherwise `bridge=*` implies +1 and
+    `tunnel=*` implies -1. Untagged ways default to ground level (0), which
+    keeps previously compiled citypacks (e.g. Akron) byte-compatible.
+    """
+    raw = (tags.get("layer") or "").strip()
+    if raw:
+        try:
+            return int(raw)
+        except ValueError:
+            pass  # fall through to bridge/tunnel inference
+    if _is_truthy_tag(tags.get("bridge")):
+        return 1
+    if _is_truthy_tag(tags.get("tunnel")):
+        return -1
+    return 0
+
 
 def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float = 0.0) -> dict[str, Any]:
     """Parse OSM and build a semantic road graph with world-space coordinates."""
@@ -34,6 +65,7 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
     # Build roads from highway ways
     roads = []
     node_to_ways: dict[str, list[str]] = {}
+    road_layers: dict[str, int] = {}
     for w in ways:
         if "highway" not in w["tags"]:
             continue
@@ -64,6 +96,9 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
         except ValueError:
             lane_count = 2 if highway in ("motorway", "trunk", "primary") else 1
 
+        layer = _parse_layer(w["tags"])
+        road_layers[w["id"]] = layer
+
         roads.append({
             "id": w["id"],
             "name": w["tags"].get("name", ""),
@@ -74,18 +109,30 @@ def build_road_graph(osm_path: Path, origin_lat: float = 0.0, origin_lon: float 
             "one_way": w["tags"].get("oneway", "no") == "yes",
             "max_speed": _parse_maxspeed(w["tags"].get("maxspeed", "")),
             "surface": w["tags"].get("surface", "asphalt"),
+            "layer": layer,
+            "elevation_m": layer * LAYER_HEIGHT_M,
+            "is_bridge": _is_truthy_tag(w["tags"].get("bridge")),
+            "is_tunnel": _is_truthy_tag(w["tags"].get("tunnel")),
         })
 
-    # Find intersections (nodes shared by 2+ roads)
+    # Find intersections (nodes shared by 2+ roads on the SAME layer).
+    # Roads at different layers (e.g. a bridge over a surface street) share a
+    # node in OSM but do not physically connect, so they must not junction.
     intersections = []
     for nid, way_ids in node_to_ways.items():
         if len(way_ids) >= 2 and nid in nodes:
-            intersections.append({
-                "node_id": nid,
-                "lat": nodes[nid][0],
-                "lon": nodes[nid][1],
-                "road_ids": way_ids,
-            })
+            by_layer: dict[int, list[str]] = {}
+            for wid in way_ids:
+                by_layer.setdefault(road_layers.get(wid, 0), []).append(wid)
+            for lyr, ids in by_layer.items():
+                if len(ids) >= 2:
+                    intersections.append({
+                        "node_id": nid,
+                        "lat": nodes[nid][0],
+                        "lon": nodes[nid][1],
+                        "road_ids": ids,
+                        "layer": lyr,
+                    })
 
     # Compute world bounds from all road points
     all_lats = [p["lat"] for r in roads for p in r["points"]]

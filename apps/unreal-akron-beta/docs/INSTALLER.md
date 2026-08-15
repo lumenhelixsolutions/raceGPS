@@ -10,14 +10,14 @@
 ### Windows
 1. Download `raceGPS-v0.2.0-Win64-Setup.exe`
 2. Double-click -> UAC prompt -> follow wizard
-3. Installer auto-detects UE5.5 / VS2022; offers guided install if missing
+3. Installer auto-detects UE5.7 / VS2022; offers guided install if missing
 4. Launch from desktop shortcut
 
 ### Linux
 ```bash
 chmod +x raceGPS-v0.2.0-Linux-Setup.run
 ./raceGPS-v0.2.0-Linux-Setup.run
-# Follow prompts; script will install UE5.5 via Epic Online Services if needed
+# Follow prompts; script will install UE5.7 via Epic Online Services if needed
 ```
 
 ---
@@ -63,7 +63,7 @@ If the installer cannot run (e.g., no admin rights, unusual path requirements):
 
 ### Prerequisites
 - **Visual Studio 2022 Build Tools** with "Desktop development with C++" workload
-- **Unreal Engine 5.5** via Epic Games Launcher
+- **Unreal Engine 5.7** via Epic Games Launcher
 - **Python 3.12** (for city compiler)
 
 ### Build from Source
@@ -73,15 +73,15 @@ git clone https://github.com/lumenhelixsolutions/racegps.git
 cd racegps/apps/unreal-akron-beta
 
 # 2. Generate project
-& "C:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
+& "C:\Program Files\Epic Games\UE_5.7\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe" `
     -projectfiles -project="$PWD\raceGPSAkronBeta.uproject" -game -engine -progress
 
 # 3. Build
-& "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\Build.bat" `
+& "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" `
     raceGPSAkronBetaEditor Win64 Development "$PWD\raceGPSAkronBeta.uproject"
 
 # 4. Cook & stage
-& "C:\Program Files\Epic Games\UE_5.5\Engine\Build\BatchFiles\RunUAT.bat" `
+& "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\RunUAT.bat" `
     BuildCookRun -project="$PWD\raceGPSAkronBeta.uproject" `
     -noP4 -platform=Win64 -clientconfig=Shipping -cook -stage -pak -archive `
     -archivedirectory="D:\projects\racegps\Build\Windows"
@@ -108,7 +108,7 @@ Pre-compiled citypacks can also be dropped into either `citypacks/` (installer-m
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| "UE5.5 not found" during install | Epic Launcher not installed | Run `scripts/setup-ue5-dev-env.bat` as Admin |
+| "UE5.7 not found" during install | Epic Launcher not installed | Run `scripts/setup-ue5-dev-env.bat` as Admin |
 | "Citypack manifest missing" | Git LFS or install incomplete | Re-install or compile city |
 | Game launches to black screen | GPU below min spec | Delete `PlayerSettings.json` to re-run onboarding |
 | Save fails silently | Directory not writable | Run as Admin or change `Saved/` path in launcher args |

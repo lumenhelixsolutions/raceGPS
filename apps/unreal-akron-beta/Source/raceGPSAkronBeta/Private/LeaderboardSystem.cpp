@@ -21,6 +21,16 @@ void ULeaderboardSystem::AddEntry(const FString& RouteId, const FLeaderboardEntr
     SaveLeaderboard(RouteId);
 }
 
+TArray<FLeaderboardEntry> ULeaderboardSystem::GetEntries(const FString& RouteId) const
+{
+    const TArray<FLeaderboardEntry>* Entries = Leaderboards.Find(RouteId);
+    if (!Entries)
+    {
+        return TArray<FLeaderboardEntry>();
+    }
+    return *Entries;
+}
+
 TArray<FLeaderboardEntry> ULeaderboardSystem::GetTopEntries(const FString& RouteId, int32 Count) const
 {
     const TArray<FLeaderboardEntry>* Entries = Leaderboards.Find(RouteId);
@@ -128,7 +138,7 @@ bool ULeaderboardSystem::LoadLeaderboard(const FString& RouteId)
     }
 
     SortEntries(Entries);
-    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Leaderboard loaded: %s (%d entries)"), *FullPath, Entries->Num());
+    UE_LOG(LogTemp, Log, TEXT("[raceGPS] Leaderboard loaded: %s (%d entries)"), *FullPath, Entries.Num());
     return true;
 }
 

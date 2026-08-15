@@ -195,7 +195,7 @@ float ARouteSplineActor::GetDistanceAlongSpline(const FVector& WorldLocation) co
     if (!Spline)
         return 0.0f;
     float InputKey = Spline->FindInputKeyClosestToWorldLocation(WorldLocation);
-    return Spline->GetDistanceAlongSplineAtInputKey(InputKey);
+    return Spline->GetDistanceAlongSplineAtSplineInputKey(InputKey);
 }
 
 FVector ARouteSplineActor::GetLocationAtDistance(float Distance) const

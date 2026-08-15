@@ -2,7 +2,7 @@
 
 **One Earth. Many cities. Many routes. One player identity. One global career.**
 
-raceGPS is a **UE5.5 desktop arcade racing game** where players drive actual city streets rendered from OpenStreetMap and OpenDRIVE semantic data. The current release is the **Akron Beta** — a complete, playable slice featuring 1,370 real roads, 1,214 junctions, and 2 generated cruise sprint routes.
+raceGPS is a **UE5.7 desktop arcade racing game** where players drive actual city streets rendered from OpenStreetMap and OpenDRIVE semantic data. The current release is the **Akron Beta** — a complete, playable slice featuring 1,370 real roads, 1,214 junctions, and 2 generated cruise sprint routes.
 
 ---
 
@@ -74,7 +74,7 @@ Crime-like gameplay is symbolic: tokens, timers, pings, heat, extraction, captur
 ## Technical Notes
 
 - **Platform:** Windows 10/11 x64
-- **Engine:** Unreal Engine 5.5
+- **Engine:** Unreal Engine 5.7
 - **Physics:** Chaos Vehicles (not PhysX)
 - **Rendering:** ProceduralMeshComponent for roads, UMG for UI, Canvas for HUD
 - **Data:** OpenDRIVE 1.4 XML, custom JSON manifest and routes

@@ -2,6 +2,10 @@
 node_modules/
 .pnpm-store/
 
+# Python virtual environments
+.venv/
+venv/
+
 # Build outputs
 dist/
 build/

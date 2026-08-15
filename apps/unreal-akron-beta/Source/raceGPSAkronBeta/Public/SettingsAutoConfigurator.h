@@ -7,7 +7,7 @@
 #include "SettingsAutoConfigurator.generated.h"
 
 UENUM(BlueprintType)
-enum class EGraphicsPreset : uint8
+enum class ERaceGPSGraphicsPreset : uint8
 {
     Low     UMETA(DisplayName = "Low"),
     Medium  UMETA(DisplayName = "Medium"),
@@ -25,13 +25,13 @@ class RACEGPSAKRONBETA_API USettingsAutoConfigurator : public UObject
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Settings")
-    static void ApplyPreset(EGraphicsPreset Preset);
+    static void ApplyPreset(ERaceGPSGraphicsPreset Preset);
 
     UFUNCTION(BlueprintCallable, Category = "Settings")
     static void ApplyRecommendedPreset();
 
     UFUNCTION(BlueprintPure, Category = "Settings")
-    static EGraphicsPreset GetRecommendedPresetEnum();
+    static ERaceGPSGraphicsPreset GetRecommendedPresetEnum();
 
 private:
     static void SetScalabilitySettings(int32 QualityLevel);

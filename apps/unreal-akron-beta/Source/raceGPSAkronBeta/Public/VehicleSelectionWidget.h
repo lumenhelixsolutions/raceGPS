@@ -20,7 +20,7 @@ public:
     UVehicleTuningData* GetSelectedVehicle() const;
 
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Vehicle")
-    void OnVehicleSelected(const FString& SelectedItem, ESelectInfo::Type SelectionType);
+    void OnVehicleSelected(FString SelectedItem, ESelectInfo::Type SelectionType);
 
     UPROPERTY(meta = (BindWidget))
     class UComboBoxString* VehicleSelector;

@@ -1,4 +1,5 @@
 #include "MainMenuWidget.h"
+#include "AkronXodrImporter.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/ComboBoxString.h"
@@ -110,25 +111,7 @@ void UMainMenuWidget::NativeConstruct()
 
     if (VersionText)
     {
-        FString GameVer = FString(RACEGPS_VERSION_STRING);
-        FString CityVer = TEXT("unknown");
-        FString CityName = TEXT("Akron");
-
-        FString ManifestPath = FPaths::ProjectDir() / TEXT("../../citypacks/akron-oh-beta-001/akron_semantic_manifest.json");
-        FString Content;
-        if (FFileHelper::LoadFileToString(Content, *ManifestPath))
-        {
-            TSharedPtr<FJsonObject> Root;
-            TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
-            if (FJsonSerializer::Deserialize(Reader, Root))
-            {
-                Root->TryGetStringField(TEXT("version"), CityVer);
-                Root->TryGetStringField(TEXT("display_name"), CityName);
-            }
-        }
-
-        FString VersionStr = BuildVersionLine();
-        VersionText->SetText(FText::FromString(VersionStr));
+        VersionText->SetText(FText::FromString(BuildVersionLine()));
     }
 
     UpdateVehicleInfo();
@@ -180,7 +163,13 @@ void UMainMenuWidget::OnPlayClicked()
         GI->SaveSettings();
     }
 
-    UGameplayStatics::OpenLevel(GetWorld(), FName(*GameLevelName));
+    FString LevelToOpen = GameLevelName;
+    FRaceGPSCityLayout Layout;
+    if (UAkronXodrImporter::ResolveCityLayout(Layout) && !Layout.LevelName.IsEmpty())
+    {
+        LevelToOpen = Layout.LevelName;
+    }
+    UGameplayStatics::OpenLevel(GetWorld(), FName(*LevelToOpen));
 }
 
 void UMainMenuWidget::OnSettingsClicked()
@@ -296,12 +285,19 @@ FString UMainMenuWidget::BuildDriveSummaryText() const
 
 FString UMainMenuWidget::BuildLaunchButtonText() const
 {
+    FString CityName = TEXT("Akron");
+    FRaceGPSCityLayout Layout;
+    if (UAkronXodrImporter::ResolveCityLayout(Layout) && !Layout.DisplayName.IsEmpty())
+    {
+        CityName = Layout.DisplayName;
+    }
+
     const FString RouteName = RouteSelector ? RouteSelector->GetSelectedOption() : TEXT("");
     if (RouteName.IsEmpty())
     {
-        return TEXT("Choose a route to Drive Akron");
+        return FString::Printf(TEXT("Choose a route to Drive %s"), *CityName);
     }
-    return FString::Printf(TEXT("Drive Akron — %s"), *RouteName);
+    return FString::Printf(TEXT("Drive %s — %s"), *CityName, *RouteName);
 }
 
 FString UMainMenuWidget::BuildVersionLine() const
@@ -310,16 +306,24 @@ FString UMainMenuWidget::BuildVersionLine() const
     FString CityVer = TEXT("unknown");
     FString CityName = TEXT("Akron");
 
-    FString ManifestPath = FPaths::ProjectDir() / TEXT("citypacks/akron-oh-beta-001/akron_semantic_manifest.json");
-    FString Content;
-    if (FFileHelper::LoadFileToString(Content, *ManifestPath))
+    // Read version/display name from the active city's manifest (either dialect).
+    FRaceGPSCityLayout Layout;
+    if (UAkronXodrImporter::ResolveCityLayout(Layout) && !Layout.ManifestPath.IsEmpty())
     {
-        TSharedPtr<FJsonObject> Root;
-        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
-        if (FJsonSerializer::Deserialize(Reader, Root))
+        FString ManifestPath = FPaths::ProjectDir() / Layout.ManifestPath;
+        FString Content;
+        if (FFileHelper::LoadFileToString(Content, *ManifestPath))
         {
-            Root->TryGetStringField(TEXT("version"), CityVer);
-            Root->TryGetStringField(TEXT("display_name"), CityName);
+            TSharedPtr<FJsonObject> Root;
+            TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Content);
+            if (FJsonSerializer::Deserialize(Reader, Root))
+            {
+                Root->TryGetStringField(TEXT("version"), CityVer);
+            }
+        }
+        if (!Layout.DisplayName.IsEmpty())
+        {
+            CityName = Layout.DisplayName;
         }
     }
 

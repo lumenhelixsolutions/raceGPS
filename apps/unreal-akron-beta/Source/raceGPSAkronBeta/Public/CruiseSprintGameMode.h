@@ -48,6 +48,9 @@ public:
     UFUNCTION()
     void OnCheckpointReached(int32 CheckpointIndex);
 
+    UFUNCTION()
+    void OnVehicleCollision(float ImpactSpeedKmh);
+
     UFUNCTION(BlueprintPure, Category = "raceGPS|GameMode")
     ECruiseSprintState GetRaceState() const { return CurrentState; }
 
@@ -135,6 +138,10 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "raceGPS|GameMode")
     TArray<FAkronPOI> LoadedPOIs;
 
+    /** Resolved layout of the active citypack (populated in StartPlay from config/cvar/cmdline). */
+    UPROPERTY(BlueprintReadOnly, Category = "raceGPS|City")
+    FRaceGPSCityLayout CityLayout;
+
     UPROPERTY()
     TObjectPtr<class UPauseMenuWidget> ActivePauseMenu;
 
@@ -205,7 +212,6 @@ protected:
     void SpawnCheckpoints();
     void UpdateCountdown(float DeltaTime);
     void InitHUDWidgets();
-    void OnVehicleCollision(float ImpactSpeedKmh);
     void CreateDefaultVehiclePresets();
     void LoadHandlingModePresets();
     TObjectPtr<class UVehicleTuningData> BuildMergedVehicleTuning(class UVehicleTuningData* BaseVehiclePreset, const FString& HandlingMode);

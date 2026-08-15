@@ -14,6 +14,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Leaderboard")
     void AddEntry(const FString& RouteId, const FLeaderboardEntry& Entry);
 
+    UFUNCTION(BlueprintPure, Category = "raceGPS|Leaderboard")
+    TArray<FLeaderboardEntry> GetEntries(const FString& RouteId) const;
+
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Leaderboard")
     TArray<FLeaderboardEntry> GetTopEntries(const FString& RouteId, int32 Count = 10) const;
 

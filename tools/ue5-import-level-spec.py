@@ -60,13 +60,27 @@ def _add_spline_points(actor, points: list[dict], label: str):
     if HAS_UNREAL:
         comp = actor.get_component_by_class(unreal.SplineComponent)
         if not comp:
-            comp = actor.add_component_by_class(unreal.SplineComponent)
+            # Actor.add_component_by_class does not exist in UE5.7 Python; create
+            # the component directly and register it on the spawned actor.
+            comp = unreal.new_object(unreal.SplineComponent, actor)
+            if actor.root_component:
+                comp.attach_to_component(
+                    actor.root_component,
+                    "",
+                    unreal.AttachmentRule.KEEP_WORLD,
+                    unreal.AttachmentRule.KEEP_WORLD,
+                    unreal.AttachmentRule.KEEP_WORLD,
+                    False,
+                )
+            if hasattr(comp, "register_component"):
+                comp.register_component()
+            actor.add_instance_component(comp)
         if comp:
             comp.clear_spline_points()
             for pt in points:
                 comp.add_spline_point(
                     unreal.Vector(pt["x"], pt["y"], pt["z"]),
-                    unreal.SplineCoordinateType.WORLD,
+                    unreal.SplineCoordinateSpace.WORLD,
                 )
         return
     print(f"# Spline for {label}")
@@ -74,7 +88,7 @@ def _add_spline_points(actor, points: list[dict], label: str):
     print(f"if not comp: comp = actor.add_component_by_class(unreal.SplineComponent)")
     print(f"comp.clear_spline_points()")
     for pt in points:
-        print(f"comp.add_spline_point(unreal.Vector({pt['x']}, {pt['y']}, {pt['z']}), unreal.SplineCoordinateType.WORLD)")
+        print(f"comp.add_spline_point(unreal.Vector({pt['x']}, {pt['y']}, {pt['z']}), unreal.SplineCoordinateSpace.WORLD)")
     print()
 
 
@@ -126,7 +140,12 @@ def main() -> int:
             continue
         label = f"RouteSpline_{route_id}"
         first = points[0]
-        actor_class = unreal.Actor if HAS_UNREAL else "unreal.Actor"
+        if HAS_UNREAL:
+            # Prefer the project's ARouteSplineActor (constructor provides the
+            # SplineComponent; UE5.7 Python cannot create+register components).
+            actor_class = unreal.load_class(None, "/Script/raceGPSAkronBeta.RouteSplineActor") or unreal.Actor
+        else:
+            actor_class = "unreal.load_class(None, '/Script/raceGPSAkronBeta.RouteSplineActor') or unreal.Actor"
         actor = _spawn_actor(actor_class, first, {"pitch": 0, "yaw": 0, "roll": 0}, label)
         _add_spline_points(actor, points, label)
 

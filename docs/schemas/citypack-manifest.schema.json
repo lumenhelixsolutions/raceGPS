@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://racegps.dev/schemas/citypack-manifest.schema.json",
+  "title": "raceGPS Citypack Manifest (Dialect A: flat file references)",
+  "description": "Schema for <city_id>_semantic_manifest.json, derived from the real artifact citypacks/akron-oh-beta-001/akron_semantic_manifest.json. See docs/CITYPACK_CONTRACT.md. Additive-only: additional properties are allowed; never remove or retype existing keys without a major version bump.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "city_id",
+    "display_name",
+    "version",
+    "origin",
+    "bounds",
+    "opendrive_file",
+    "routes",
+    "road_graph",
+    "spawn_points",
+    "pois"
+  ],
+  "properties": {
+    "city_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Unique pack identifier; also the citypack directory name. Example: akron-oh-beta-001"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable city name. Read by UE5 MainMenuWidget."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Pack semver. UE5 compares major.minor against the game build (CruiseSprintGameMode::IsVersionCompatible)."
+    },
+    "game_version_min": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Declared minimum compatible game version. Currently not read by any consumer."
+    },
+    "game_version_max": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Declared maximum compatible game version. Currently not read by any consumer."
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+      },
+      "description": "WGS84 world origin used for geo->world projection (StreetFurnitureSpawner, generate-level-spec.py)."
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["west", "south", "east", "north"],
+      "properties": {
+        "west": { "type": "number", "minimum": -180, "maximum": 180 },
+        "south": { "type": "number", "minimum": -90, "maximum": 90 },
+        "east": { "type": "number", "minimum": -180, "maximum": 180 },
+        "north": { "type": "number", "minimum": -90, "maximum": 90 }
+      },
+      "description": "WGS84 bounding box of the compiled area. NOTE: AkronXodrImporter::LoadManifest reads lat_min/lon_min instead; see CITYPACK_CONTRACT.md section 7 item 3."
+    },
+    "opendrive_file": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.xodr$",
+      "description": "OpenDRIVE file, relative to the pack directory."
+    },
+    "routes": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Routes JSON (bare array), relative to the pack directory."
+    },
+    "road_graph": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Semantic road graph JSON, relative to the pack directory."
+    },
+    "spawn_points": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Spawn points JSON (bare array), relative to the pack directory."
+    },
+    "pois": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Classified POIs JSON (bare array), relative to the pack directory."
+    },
+    "buildings": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Buildings JSON, relative to the pack directory. Optional; the file may be absent even when referenced (see CITYPACK_CONTRACT.md section 7 item 2)."
+    },
+    "gameplay_layer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\.json$",
+      "description": "Gameplay layer JSON (speed/pickup/objective/challenge zones). Optional; Akron-only at present."
+    },
+    "route_count": { "type": "integer", "minimum": 0 },
+    "poi_count": { "type": "integer", "minimum": 0 },
+    "spawn_point_count": { "type": "integer", "minimum": 0 },
+    "building_count": { "type": "integer", "minimum": 0 }
+  }
+}

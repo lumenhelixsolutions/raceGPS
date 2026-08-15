@@ -10,11 +10,10 @@ ATrafficAISpawner::ATrafficAISpawner(const FObjectInitializer& ObjectInitializer
     PrimaryActorTick.bCanEverTick = true;
 
     // Default traffic vehicle class
-    static ConstructorHelpers::FClassFinder<ATrafficVehicle> TrafficClassFinder(TEXT("/Game/Vehicles/Traffic/BP_TrafficVehicle"));
-    if (TrafficClassFinder.Succeeded())
-    {
-        TrafficVehicleClass = TrafficClassFinder.Class;
-    }
+    // The BP at /Game/Vehicles/Traffic/BP_TrafficVehicle does not exist yet (only the C++ ATrafficVehicle base).
+    // Using the native C++ class directly lets the cooker succeed.
+    // Create the BP subclass later for data-driven traffic variants if desired.
+    TrafficVehicleClass = ATrafficVehicle::StaticClass();
 }
 
 void ATrafficAISpawner::BeginPlay()
