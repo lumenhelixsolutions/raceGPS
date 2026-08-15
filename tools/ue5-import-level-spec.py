@@ -42,8 +42,11 @@ def _spec_to_ue(location: dict):
     Z-up with a horizontal X/Y ground plane, so map data (x, y, z) onto UE
     (x, -z, y): east stays X, north becomes +Y, up becomes +Z. Without this
     remap, spec actors land in a vertical X/Z curtain (T10).
+
+    Sprint-2 scale decision: 1 uu = 1 cm, spec data is meters -> x100.
+    Keep in sync with UAkronXodrImporter::MetersToUU.
     """
-    return unreal.Vector(location["x"], -location["z"], location["y"])
+    return unreal.Vector(location["x"] * 100.0, -location["z"] * 100.0, location["y"] * 100.0)
 
 
 def _spawn_actor(actor_class, location: dict, rotation: dict, label: str):

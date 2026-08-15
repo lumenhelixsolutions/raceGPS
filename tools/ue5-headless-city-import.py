@@ -166,6 +166,70 @@ def find_actor_by_label(label):
 
 # ---------------------------------------------------------------- stages
 
+def _terrain_height_cm(terrain, x_cm, y_cm):
+    """Bilinear-sample the terrain bundle at a world position (cm).
+
+    Bundle fields x0/y0/x1/y1/heights are meters (absolute elevation);
+    world X/Y here are cm (1 uu = 1 cm).
+    """
+    rows, cols = terrain["rows"], terrain["cols"]
+    heights = terrain["heights"]
+    x0, y0 = terrain["x0"] * 100.0, terrain["y0"] * 100.0
+    dx = (terrain["x1"] - terrain["x0"]) / (cols - 1) * 100.0
+    dy = (terrain["y1"] - terrain["y0"]) / (rows - 1) * 100.0
+    fc = (x_cm - x0) / dx
+    fr = (y_cm - y0) / dy
+    fc = min(max(fc, 0.0), cols - 1.001)
+    fr = min(max(fr, 0.0), rows - 1.001)
+    c0, r0 = int(fc), int(fr)
+    tc, tr = fc - c0, fr - r0
+    h00 = heights[r0][c0] * 100.0
+    h10 = heights[r0][c0 + 1] * 100.0
+    h01 = heights[r0 + 1][c0] * 100.0
+    h11 = heights[r0 + 1][c0 + 1] * 100.0
+    return (h00 * (1 - tc) * (1 - tr) + h10 * tc * (1 - tr)
+            + h01 * (1 - tc) * tr + h11 * tc * tr)
+
+
+def _lift_spec_actors(bundle):
+    """Lift spec-imported actors (PlayerStarts, gates, splines, volumes) to
+    absolute terrain height. Spec y is 0 (flat), so without this every baked
+    spawn/gate would sit 17km+ under the absolute-elevation terrain."""
+    terrain = bundle.get("terrain")
+    if not terrain:
+        log("no terrain in bundle; spec actors left at spec heights")
+        return
+    # per-label-prefix Z offset above ground (cm): gates use box half-height
+    lifts = (("SP_", 100.0), ("CP_", 400.0), ("ReflCapture_", 5000.0),
+             ("TrafficVol_", 2000.0))
+    lifted = 0
+    spline_pts = 0
+    for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+        label = actor.get_actor_label()
+        loc = actor.get_actor_location()
+        for prefix, off in lifts:
+            if label.startswith(prefix):
+                ground = _terrain_height_cm(terrain, loc.x, loc.y)
+                actor.set_actor_location(
+                    unreal.Vector(loc.x, loc.y, ground + off), False, False)
+                lifted += 1
+                break
+        else:
+            if label.startswith("RouteSpline_"):
+                splines = actor.get_components_by_class(unreal.SplineComponent)
+                for sp in splines:
+                    n = sp.get_number_of_spline_points()
+                    for i in range(n):
+                        p = sp.get_location_at_spline_point(
+                            i, unreal.SplineCoordinateSpace.WORLD)
+                        ground = _terrain_height_cm(terrain, p.x, p.y)
+                        sp.set_location_at_spline_point(
+                            i, unreal.Vector(p.x, p.y, ground + 50.0),
+                            unreal.SplineCoordinateSpace.WORLD, True)
+                        spline_pts += 1
+    log(f"spec lift: {lifted} actors, {spline_pts} spline points raised to terrain")
+
+
 def stage_spec(bundle, spec_path, package_path):
     level_subsys = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     if unreal.EditorAssetLibrary.does_asset_exist(package_path):
@@ -183,6 +247,7 @@ def stage_spec(bundle, spec_path, package_path):
     rc = importer.main()
     if rc != 0:
         raise RuntimeError(f"spec importer returned {rc}")
+    _lift_spec_actors(bundle)
     if not level_subsys.save_current_level():
         raise RuntimeError("save after spec stage failed")
     log(f"spec stage done -> {package_path}")

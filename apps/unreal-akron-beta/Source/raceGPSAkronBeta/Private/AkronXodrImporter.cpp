@@ -301,6 +301,12 @@ float UAkronXodrImporter::MetersPerDegreeLat()
     return 110540.0f;
 }
 
+// Sprint-2 scale decision: real-world scale everywhere — 1 uu = 1 cm.
+// Compiler/spec data is meters; every meter value crossing into the world
+// multiplies by this. Keep in sync with the bake choke point
+// (tools/ue5-import-level-spec.py::_spec_to_ue).
+constexpr float kMetersToUU = UAkronXodrImporter::MetersToUU;
+
 FVector UAkronXodrImporter::GeoToWorld(float Lat, float Lon, float OriginLat, float OriginLon)
 {
     // Standard UE Z-up: X = east, Y = north, Z = up. The T10 bake remaps
@@ -309,8 +315,8 @@ FVector UAkronXodrImporter::GeoToWorld(float Lat, float Lon, float OriginLat, fl
     // the same. Callers add height via +Z afterwards.
     const float MetersPerLon = MetersPerDegreeLon(OriginLat);
     const float MetersPerLat = MetersPerDegreeLat();
-    const float X = (Lon - OriginLon) * MetersPerLon;
-    const float Y = (Lat - OriginLat) * MetersPerLat;
+    const float X = (Lon - OriginLon) * MetersPerLon * kMetersToUU;
+    const float Y = (Lat - OriginLat) * MetersPerLat * kMetersToUU;
     return FVector(X, Y, 0.0f);
 }
 
@@ -319,9 +325,10 @@ FVector UAkronXodrImporter::XodrToWorld(float X, float Y, float OriginLat, float
     // OpenDRIVE: X=east, Y=north  ->  UE Z-up: X=east, Y=north, Z=up.
     // Same convention as GeoToWorld; origin already baked into XODR local
     // coords, so no remap is needed beyond passing the axes through.
+    // XODR local coords are meters -> cm.
     (void)OriginLat;
     (void)OriginLon;
-    return FVector(X, Y, 0.0f);
+    return FVector(X * kMetersToUU, Y * kMetersToUU, 0.0f);
 }
 
 bool UAkronXodrImporter::ImportXodr(const FString& XodrPath, TArray<FAkronRoadSegment>& OutRoads)

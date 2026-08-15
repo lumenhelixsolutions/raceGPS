@@ -183,6 +183,16 @@ void ACruiseSprintGameMode::StartPlay()
     LoadCityData();
     CurrentState = ECruiseSprintState::Loading;
 
+    if (bRunningBakedCityMap)
+    {
+        // Baked maps carry terrain/buildings/water in the .umap (T10). The
+        // runtime generators target the legacy flat meter-scale path (and
+        // StreetFurnitureSpawner is hardcoded to the Akron origin), so they
+        // would only produce invisible or misplaced duplicates here.
+        UE_LOG(LogTemp, Log, TEXT("[raceGPS] Baked map: runtime road/building/furniture generation skipped (city content is baked)"));
+    }
+    else
+    {
     // Spawn road meshes asynchronously
     FActorSpawnParameters RoadParams;
     RoadParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -222,6 +232,7 @@ void ACruiseSprintGameMode::StartPlay()
                 : CityPackPath + TEXT("akron_road_graph.json");
             Furniture->SpawnFurnitureAsync();
         }
+    }
     }
 
     // After road generation + brief load, transition to countdown

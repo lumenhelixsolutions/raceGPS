@@ -110,7 +110,8 @@ void ARoadMeshGenerator::GenerateRoadMesh(const FAkronRoadSegment& Segment, UPro
 {
     const TArray<FVector>& Points = Segment.WorldPoints;
     const int32 NumPoints = Points.Num();
-    const float HalfWidth = Segment.WidthMeters * 0.5f;
+    // WidthMeters is meters; world is 1 uu = 1 cm (Sprint-2 scale decision).
+    const float HalfWidth = Segment.WidthMeters * UAkronXodrImporter::MetersToUU * 0.5f;
 
     TArray<FVector> Vertices;
     TArray<int32> Triangles;

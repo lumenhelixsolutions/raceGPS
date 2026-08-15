@@ -5,7 +5,7 @@ headless city importer (tools/ue5-headless-city-import.py).
 
 Runs OUTSIDE the editor (plain python) so the commandlet stays fast:
   - terrain: heightmap grid -> UE meter grid (east=X, north=Y, up=Z,
-    heights relative to min_elevation)
+    absolute heights in meters above sea level)
   - buildings: footprint AABB -> instanced box transforms (x, y, z_base,
     sx, sy, h, material bucket), z_base sampled from the terrain grid
   - water: consumes the NEW water schema. Source priority:
@@ -129,7 +129,7 @@ def polygon_area(pts):
 
 
 class TerrainGrid:
-    """Bilinear sampler over the citypack heightmap, in UE meters (relative)."""
+    """Bilinear sampler over the citypack heightmap, in UE meters (absolute)."""
 
     def __init__(self, heightmap_doc, origin_lat, origin_lon):
         self.rows = heightmap_doc["rows"]
@@ -146,7 +146,11 @@ class TerrainGrid:
         self.y1 = (b["north"] - origin_lat) * mpdlat
 
     def height_at(self, x, y):
-        """Bilinear height (meters, relative to min_elevation) at UE (x, y)."""
+        """Bilinear ABSOLUTE height (meters above sea level) at UE (x, y).
+
+        Sprint-2 scale story: elevations are absolute so pawns/gates rest on
+        the terrain at their real-world Z (~17k-26k uu for Cleveland).
+        """
         fx = (x - self.x0) / (self.x1 - self.x0) * (self.cols - 1)
         fy = (y - self.y0) / (self.y1 - self.y0) * (self.rows - 1)
         fx = min(max(fx, 0.0), self.cols - 1.001)
@@ -159,7 +163,7 @@ class TerrainGrid:
         h01 = g[r0 + 1][c0]
         h11 = g[r0 + 1][c0 + 1]
         h = (h00 * (1 - tc) + h10 * tc) * (1 - tr) + (h01 * (1 - tc) + h11 * tc) * tr
-        return h - self.min_elev
+        return h
 
 
 def main() -> int:
@@ -212,8 +216,8 @@ def main() -> int:
         terrain = {
             "rows": tg.rows, "cols": tg.cols,
             "x0": tg.x0, "y0": tg.y0, "x1": tg.x1, "y1": tg.y1,
-            # heights relative to min elevation, meters
-            "heights": [[v - tg.min_elev for v in row] for row in tg.grid],
+            # absolute heights (meters above sea level)
+            "heights": [list(row) for row in tg.grid],
         }
         print(f"[prep] terrain: {tg.cols}x{tg.rows} grid, relief "
               f"{hm['min_elevation']:.0f}..{hm['max_elevation']:.0f} m")
