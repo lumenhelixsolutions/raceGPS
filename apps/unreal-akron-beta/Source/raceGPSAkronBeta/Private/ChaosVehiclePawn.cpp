@@ -278,7 +278,21 @@ void AChaosVehiclePawn::ApplyArcadeHandling(UChaosWheeledVehicleMovementComponen
                 const FRichCurveKey& Key = SrcCurve->GetKey(*KeyIt);
                 DstCurve->AddKey(Key.Time, Key.Value);
             }
-            WheeledComp->SteeringSetup.GetPhysicsSteeringConfig(WheeledComp->GetWheelLayoutDimensions());
+            // GetWheelLayoutDimensions() is protected on the component; replicate
+            // UChaosWheeledVehicleMovementComponent::CalculateWheelLayoutDimensions()
+            // here using the public LocateBoneOffset() helper (full width/length, not half).
+            FVector2D LayoutDims(0.f, 0.f);
+            for (const FChaosWheelSetup& WheelSetup : WheeledComp->WheelSetups)
+            {
+                UClass* WheelClass = WheelSetup.WheelClass ? static_cast<UClass*>(WheelSetup.WheelClass) : UChaosVehicleWheel::StaticClass();
+                const UChaosVehicleWheel* WheelCDO = Cast<UChaosVehicleWheel>(WheelClass->GetDefaultObject(true));
+                const FVector ExtraOffset = (WheelCDO ? WheelCDO->Offset : FVector::ZeroVector) + WheelSetup.AdditionalOffset;
+                const FVector RestingPos = WheeledComp->LocateBoneOffset(WheelSetup.BoneName, ExtraOffset);
+                LayoutDims.X = FMath::Max(LayoutDims.X, FMath::Abs(RestingPos.X));
+                LayoutDims.Y = FMath::Max(LayoutDims.Y, FMath::Abs(RestingPos.Y));
+            }
+            LayoutDims *= 2.0f;
+            WheeledComp->SteeringSetup.GetPhysicsSteeringConfig(LayoutDims);
         }
     }
 
