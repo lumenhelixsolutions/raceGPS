@@ -50,3 +50,6 @@ __pycache__/
 citypacks/*/
 generated/*/
 *.osm
+
+# T10 city-import prep artifacts (regenerable)
+generated/*_ueimport*.json
