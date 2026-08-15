@@ -323,7 +323,7 @@ def stage_water(bundle):
     for x, y, z, sx, sy, yaw, kind in planes:
         t = unreal.Transform(
             location=unreal.Vector(x * 100.0, y * 100.0, z * 100.0),
-            rotation=unreal.Rotator(0, yaw, 0),
+            rotation=unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw),
             scale=unreal.Vector(sx, sy, 1.0))
         hism.add_instance(t)
         n += 1

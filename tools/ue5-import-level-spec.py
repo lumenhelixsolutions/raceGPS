@@ -53,7 +53,7 @@ def _spawn_actor(actor_class, location: dict, rotation: dict, label: str):
     """Spawn an actor in the level or print the command."""
     if HAS_UNREAL:
         loc = _spec_to_ue(location)
-        rot = unreal.Rotator(rotation["pitch"], rotation["yaw"], rotation["roll"])
+        rot = unreal.Rotator(roll=rotation["roll"], pitch=rotation["pitch"], yaw=rotation["yaw"])
         actor = unreal.EditorLevelLibrary.spawn_actor_from_class(actor_class, loc, rot)
         if actor:
             actor.set_actor_label(label)
@@ -62,7 +62,7 @@ def _spawn_actor(actor_class, location: dict, rotation: dict, label: str):
     print(f"actor = unreal.EditorLevelLibrary.spawn_actor_from_class(")
     print(f"    {actor_class},")
     print(f"    unreal.Vector({location['x']}, {location['y']}, {location['z']}),")
-    print(f"    unreal.Rotator({rotation['pitch']}, {rotation['yaw']}, {rotation['roll']})")
+    print(f"    unreal.Rotator(roll={rotation['roll']}, pitch={rotation['pitch']}, yaw={rotation['yaw']})")
     print(f")")
     print(f"actor.set_actor_label('{label}')")
     print()
@@ -188,13 +188,13 @@ def main() -> int:
     if HAS_UNREAL:
         for a in unreal.EditorLevelLibrary.get_all_level_actors():
             if a.get_class().get_name() == "DirectionalLight":
-                a.set_actor_rotation(unreal.Rotator(sun_rot["pitch"], sun_rot["yaw"], sun_rot["roll"]))
+                a.set_actor_rotation(unreal.Rotator(roll=sun_rot["roll"], pitch=sun_rot["pitch"], yaw=sun_rot["yaw"]))
                 break
     else:
         print(f"# Set Directional Light for time-of-day ({lighting.get('time_of_day', 14)}:00)")
         print("for a in unreal.EditorLevelLibrary.get_all_level_actors():")
         print("    if a.get_class().get_name() == 'DirectionalLight':")
-        print(f"        a.set_actor_rotation(unreal.Rotator({sun_rot['pitch']}, {sun_rot['yaw']}, {sun_rot['roll']}))")
+        print(f"        a.set_actor_rotation(unreal.Rotator(roll={sun_rot['roll']}, pitch={sun_rot['pitch']}, yaw={sun_rot['yaw']}))")
         print("        break")
         print()
 

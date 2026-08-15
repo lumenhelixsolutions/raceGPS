@@ -75,7 +75,12 @@ def ensure_lighting_rig(level_subsys=None):
     else:
         result["sun"] = "existing"
     if sun:
-        sun.set_actor_rotation(unreal.Rotator(*SUN_ROTATION), False)
+        # NOTE: unreal.Rotator positional args are (roll, pitch, yaw) — the
+        # Python binding orders struct fields alphabetically. Positional
+        # (pitch, yaw, roll) here made the sun point UP (pitch=135) -> black
+        # city. Use keyword args.
+        sun.set_actor_rotation(
+            unreal.Rotator(roll=SUN_ROTATION[2], pitch=SUN_ROTATION[0], yaw=SUN_ROTATION[1]), False)
         light_comp = sun.get_component_by_class(unreal.DirectionalLightComponent)
         if light_comp:
             _set(light_comp, "mobility", unreal.ComponentMobility.MOVABLE)

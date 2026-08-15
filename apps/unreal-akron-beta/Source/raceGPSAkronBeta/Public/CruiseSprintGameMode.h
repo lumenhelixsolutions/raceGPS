@@ -264,6 +264,10 @@ protected:
     bool bDiagBirdseyeShotFired = false;
     bool bDiagBirdseyeDone = false;
     FDateTime DiagBirdseyeShotAt;
+    // ShowFlag bisect series state (rendering sessions only; samples 17-30).
+    FDateTime DiagSeriesShotAt;
+    int32 DiagSeriesShotSample = 0;
+    FString DiagSeriesLabel;
     /** Gates bound for the active route; -1 = not resolved yet. */
     int32 DiagGatesBound = -1;
 

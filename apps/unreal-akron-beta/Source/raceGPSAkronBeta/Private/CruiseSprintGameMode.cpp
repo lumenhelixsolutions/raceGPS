@@ -39,6 +39,7 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Engine/DirectionalLight.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Engine/SkyLight.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -295,6 +296,8 @@ void ACruiseSprintGameMode::StartPlay()
         DiagBirdseyeCam.Reset();
         bDiagBirdseyeShotFired = false;
         bDiagBirdseyeDone = false;
+        DiagSeriesShotSample = 0;
+        DiagSeriesLabel.Empty();
         DiagGatesBound = -1;
         GetWorld()->GetTimerManager().SetTimer(DiagTimerHandle, this,
             &ACruiseSprintGameMode::DiagnosticsSampleTick, 1.0f, true, 1.0f);
@@ -1707,13 +1710,165 @@ void ACruiseSprintGameMode::DiagnosticsSampleTick()
         }
     }
 
-    // Cheap: stop after 15 samples (-nullrhi) or once the birdseye verdict has
-    // landed in a rendering session (hard cap 20 samples).
+    // --- ShowFlag bisect series (rendering sessions only, samples 17-30) ------
+    // One shot per flag state, ~2s settle after each change, flags restored
+    // between shots. Finds the guilty pipeline stage (post / lighting / sky).
+    if (bDiagRender)
+    {
+        auto ExecViewCmd = [World](const TCHAR* Cmd)
+        {
+            if (UGameViewportClient* VC = World->GetGameViewport())
+            {
+                VC->Exec(World, Cmd, *GLog);
+            }
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] exec: %s"), Cmd);
+        };
+        auto DumpCVar = [](const TCHAR* Name)
+        {
+            IConsoleVariable* CV = IConsoleManager::Get().FindConsoleVariable(Name);
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] cvar %s = %s"), Name,
+                CV ? *CV->GetString() : TEXT("<not found>"));
+        };
+        // Renderer CVars: set directly via the console manager (VC->Exec is for
+        // viewport commands like ShowFlag/HighResShot; plain cvar strings are
+        // more reliable through Set()).
+        auto SetCVar = [](const TCHAR* Name, int32 Value)
+        {
+            if (IConsoleVariable* CV = IConsoleManager::Get().FindConsoleVariable(Name))
+            {
+                CV->Set(Value, ECVF_SetByConsole);
+            }
+            UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] set-cvar: %s %d"), Name, Value);
+        };
+        auto SeriesShot = [&](const TCHAR* Label)
+        {
+            ExecViewCmd(TEXT("HighResShot 1280x720"));
+            DiagSeriesShotAt = FDateTime::Now();
+            DiagSeriesShotSample = DiagSampleCount;
+            DiagSeriesLabel = Label;
+        };
+
+        // Confirm the previous series shot two samples after its request.
+        if (!DiagSeriesLabel.IsEmpty() && DiagSampleCount > DiagSeriesShotSample + 1)
+        {
+            FString FoundPath;
+            int64 FoundBytes = 0;
+            if (DiagFindNewScreenshot(FPaths::ScreenShotDir(), DiagSeriesShotAt, FoundPath, FoundBytes))
+            {
+                UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] flagshot '%s' written: %s (bytes=%lld)"),
+                    *DiagSeriesLabel, *FoundPath, FoundBytes);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] flagshot '%s' FAILED (no new PNG)"), *DiagSeriesLabel);
+            }
+            DiagSeriesLabel.Empty();
+        }
+
+        switch (DiagSampleCount)
+        {
+        case 17:
+            // Runtime cross-check of Part A: what sun does the LIVE scene see?
+            for (TActorIterator<ADirectionalLight> It(World); It; ++It)
+            {
+                if (UDirectionalLightComponent* LC = It->FindComponentByClass<UDirectionalLightComponent>())
+                {
+                    UE_LOG(LogTemp, Log, TEXT("[raceGPS-DIAG] sun '%s' intensity=%.1f color=%s mobility=%d castShadows=%d affectsWorld=%d compVisible=%d actorHidden=%d rotation=%s"),
+                        *DiagActorName(*It), LC->Intensity, *LC->GetLightColor().ToString(),
+                        (int32)LC->Mobility.GetValue(), LC->CastShadows ? 1 : 0,
+                        LC->bAffectsWorld ? 1 : 0, LC->IsVisible() ? 1 : 0,
+                        It->IsHidden() ? 1 : 0, *It->GetActorRotation().ToString());
+                }
+            }
+            ExecViewCmd(TEXT("ShowFlag.PostProcessing 0"));
+            break;
+        case 19:
+            SeriesShot(TEXT("no-post"));
+            break;
+        case 20:
+            ExecViewCmd(TEXT("ShowFlag.PostProcessing 1"));
+            ExecViewCmd(TEXT("ShowFlag.Lighting 0"));
+            break;
+        case 22:
+            SeriesShot(TEXT("unlit"));
+            break;
+        case 23:
+            ExecViewCmd(TEXT("ShowFlag.PostProcessing 0")); // Lighting still 0
+            break;
+        case 25:
+            SeriesShot(TEXT("unlit+no-post"));
+            break;
+        case 26:
+            ExecViewCmd(TEXT("ShowFlag.PostProcessing 1"));
+            ExecViewCmd(TEXT("ShowFlag.Lighting 1"));
+            ExecViewCmd(TEXT("ShowFlag.Atmosphere 0"));
+            break;
+        case 28:
+            SeriesShot(TEXT("no-atmosphere"));
+            break;
+        case 29:
+            ExecViewCmd(TEXT("ShowFlag.Atmosphere 1"));
+            DumpCVar(TEXT("r.DefaultFeature.AutoExposure"));
+            DumpCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"));
+            DumpCVar(TEXT("r.Lumen.Reflections.Allow"));
+            DumpCVar(TEXT("r.GenerateMeshDistanceFields"));
+            DumpCVar(TEXT("r.EyeAdaptationQuality"));
+            break;
+        // --- Round 3: lighting-pipeline isolation (lit, flags normal) ---------
+        case 31:
+            SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), 0);
+            SetCVar(TEXT("r.Lumen.Reflections.Allow"), 0);
+            break;
+        case 33:
+            SeriesShot(TEXT("no-lumen"));
+            break;
+        case 35:
+            SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), 1);
+            SetCVar(TEXT("r.Lumen.Reflections.Allow"), 1);
+            SetCVar(TEXT("r.Shadow.Virtual.Enable"), 0);
+            break;
+        case 37:
+            SeriesShot(TEXT("no-vsm"));
+            break;
+        case 39:
+            SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), 0);
+            SetCVar(TEXT("r.Lumen.Reflections.Allow"), 0); // VSM still 0
+            break;
+        case 41:
+            SeriesShot(TEXT("no-vsm+no-lumen"));
+            break;
+        case 43:
+            SetCVar(TEXT("r.Shadow.Virtual.Enable"), 1);
+            SetCVar(TEXT("r.Lumen.DiffuseIndirect.Allow"), 1);
+            SetCVar(TEXT("r.Lumen.Reflections.Allow"), 1);
+            ExecViewCmd(TEXT("ShowFlag.DirectLighting 0"));
+            break;
+        case 45:
+            SeriesShot(TEXT("no-direct-lighting"));
+            break;
+        case 47:
+            ExecViewCmd(TEXT("ShowFlag.DirectLighting 1"));
+            ExecViewCmd(TEXT("ShowFlag.IndirectLighting 0"));
+            break;
+        case 49:
+            SeriesShot(TEXT("no-indirect-lighting"));
+            break;
+        case 51:
+            ExecViewCmd(TEXT("ShowFlag.IndirectLighting 1"));
+            break;
+        default:
+            break;
+        }
+    }
+
+    // Cheap: stop after 15 samples (-nullrhi) or once the whole bisect series
+    // has landed in a rendering session (last confirm at sample 51; cap 55).
     const bool bDiagWorkDone =
         (!bDiagShotRequested || bDiagShotResultLogged) &&
-        (!bDiagBirdseyeShotFired || bDiagBirdseyeDone);
-    if (DiagSampleCount >= 20 ||
-        (DiagSampleCount >= 17 && bDiagWorkDone) ||
+        (!bDiagBirdseyeShotFired || bDiagBirdseyeDone) &&
+        DiagSeriesLabel.IsEmpty();
+    if (DiagSampleCount >= 55 ||
+        (DiagSampleCount >= 52 && bDiagWorkDone) ||
         (DiagSampleCount >= 15 && bDiagWorkDone && !bDiagRender))
     {
         World->GetTimerManager().ClearTimer(DiagTimerHandle);
