@@ -36,6 +36,11 @@ ADayNightCycle::ADayNightCycle(const FObjectInitializer& ObjectInitializer)
     {
         SkySphere->SetStaticMesh(SphereMesh.Object);
         SkySphere->SetRelativeScale3D(FVector(10000.0f, 10000.0f, 10000.0f));
+        // Opaque engine sphere at 10km will occlude a camera outside it (intro cam is ~24km).
+        // SkyAtmosphere is the actual sky; keep this mesh out of the game view.
+        SkySphere->SetVisibility(false);
+        SkySphere->SetHiddenInGame(true);
+        SkySphere->SetCastShadow(false);
     }
 
     // UE5 SkyAtmosphere — only created if engine supports it
@@ -60,6 +65,12 @@ ADayNightCycle::ADayNightCycle(const FObjectInitializer& ObjectInitializer)
 void ADayNightCycle::BeginPlay()
 {
     Super::BeginPlay();
+    if (SkySphere)
+    {
+        SkySphere->SetVisibility(false);
+        SkySphere->SetHiddenInGame(true);
+        SkySphere->SetCastShadow(false);
+    }
     CurrentTimeOfDay = StartTimeOfDay;
     UpdateSunRotation();
     UpdateSkyColor();
@@ -127,15 +138,31 @@ void ADayNightCycle::UpdateSunRotation()
     SunRot.Yaw = SunAngle + 90.0f;
     SunRot.Roll = 0.0f;
 
+    const bool bNight = !IsDaytime();
+    if (bNight && bMoonAtNight)
+    {
+        // 22:00 solar pitch is ~+69 (sun below horizon, light pointing at the sky).
+        // With competing directional lights suppressed that leaves the world unlit = RGB 0,0,0.
+        // Keep a high moon directional so SkyAtmosphere and the ground actually receive light.
+        SunRot.Pitch = -46.0f;
+        SunRot.Yaw = 205.0f;
+    }
+
     SunLight->SetWorldRotation(SunRot);
+    SunLight->SetVisibility(true);
 
-    // Adjust intensity based on time
-    float DayIntensity = 2.5f;
-    float NightIntensity = 0.05f;
-    float Intensity = IsDaytime() ? DayIntensity : NightIntensity;
-    SunLight->SetIntensity(FMath::Lerp(SunLight->Intensity, Intensity, 0.1f));
+    const float DayIntensity = 2.5f;
+    const float MoonFloor = FMath::Max(NightMoonIntensity, 1.80f);
+    if (bNight)
+    {
+        SunLight->SetIntensity(MoonFloor);
+        SunLight->SetLightColor(FLinearColor(0.74f, 0.84f, 1.0f));
+    }
+    else
+    {
+        SunLight->SetIntensity(DayIntensity);
+    }
 
-    // Update SkyAtmosphere sun disc
     if (SkyAtmosphere && bUseSkyAtmosphere)
     {
         SkyAtmosphere->SetTickGroup(TG_DuringPhysics);
@@ -176,16 +203,19 @@ void ADayNightCycle::UpdateSkyAtmosphere()
 
 void ADayNightCycle::UpdateVolumetricClouds()
 {
-    if (!VolumetricClouds || !bUseVolumetricClouds)
+    if (!VolumetricClouds)
         return;
 
-    // Adjust cloud density/opacity based on time
-    float Elevation = GetSunElevation();
-    float NightOpacity = 0.3f;
-    float DayOpacity = 0.8f;
-    float Opacity = FMath::Lerp(NightOpacity, DayOpacity, FMath::Clamp((Elevation + 10.0f) / 20.0f, 0.0f, 1.0f));
+    if (!bUseVolumetricClouds)
+    {
+        // V8: hide broken night cloud sheet (reads as mottled water/noise).
+        VolumetricClouds->SetVisibility(false);
+        VolumetricClouds->SetHiddenInGame(true);
+        return;
+    }
 
-    // Scale cloud coverage using the altitude offset
+    VolumetricClouds->SetVisibility(true);
+    VolumetricClouds->SetHiddenInGame(false);
     VolumetricClouds->LayerBottomAltitude = 5.0f;
     VolumetricClouds->LayerHeight = 8.0f;
 }
@@ -216,7 +246,8 @@ FLinearColor ADayNightCycle::GetSkyColor(float Hour) const
         float T = (Hour - 18.0f) / 2.0f;
         return FLinearColor::LerpUsingHSV(FLinearColor(0.8f, 0.4f, 0.2f), FLinearColor(0.02f, 0.02f, 0.1f), T);
     }
-    return FLinearColor(0.02f, 0.02f, 0.1f);
+    // Visible midnight navy — not near-black. Applied to SkyLight via UpdateSkyColor.
+    return FLinearColor(0.04f, 0.06f, 0.14f); // V8 deeper night, less flat navy wash
 }
 
 float ADayNightCycle::GetSunElevation() const

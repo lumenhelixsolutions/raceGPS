@@ -1,0 +1,17 @@
+{
+  "id": "monument-sprint",
+  "name": "Monument Sprint",
+  "mode": "race",
+  "poiFilters": [
+    "tourist_attraction",
+    "monument",
+    "landmark"
+  ],
+  "minCheckpoints": 3,
+  "maxCheckpoints": 8,
+  "objectSet": [
+    "gps_coin",
+    "landmark_token",
+    "speed_gate"
+  ]
+}

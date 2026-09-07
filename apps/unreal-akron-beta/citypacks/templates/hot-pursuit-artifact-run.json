@@ -1,0 +1,19 @@
+{
+  "id": "hot-pursuit-artifact-run",
+  "name": "Artifact Run",
+  "mode": "hot_pursuit",
+  "roles": [
+    "cop",
+    "runner"
+  ],
+  "objectSet": [
+    "artifact_token",
+    "evidence_bag",
+    "heat_reducer",
+    "extraction_key"
+  ],
+  "winConditions": {
+    "runner": "collect objects and reach extraction",
+    "cop": "tag runner before extraction"
+  }
+}

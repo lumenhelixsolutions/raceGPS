@@ -1,0 +1,13 @@
+{
+  "biome": "temperate_lowland",
+  "base": "temperate",
+  "elevation_tag": "lowland",
+  "materials": {
+    "ground": "grass",
+    "tree": "oak",
+    "building": "brick",
+    "sky": "clear_blue"
+  },
+  "temperature_c": 4.0,
+  "precipitation": "moderate"
+}

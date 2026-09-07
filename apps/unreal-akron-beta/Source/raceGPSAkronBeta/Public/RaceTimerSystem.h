@@ -40,6 +40,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|RaceTimer")
     void StartLap();
 
+    UFUNCTION(BlueprintPure, Category = "raceGPS|RaceTimer")
+    bool IsLapActive() const { return bLapActive; }
+
     UFUNCTION(BlueprintCallable, Category = "raceGPS|RaceTimer")
     void EndLap();
 

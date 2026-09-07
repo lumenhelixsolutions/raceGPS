@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
-	"Description": "raceGPS Akron Beta — Commercial-grade Unreal driving slice",
+	"Description": "raceGPS Akron Beta \u2014 Commercial-grade Unreal driving slice",
 	"Modules": [
 		{
 			"Name": "raceGPSAkronBeta",
@@ -32,6 +32,14 @@
 		},
 		{
 			"Name": "EditorScriptingUtilities",
+			"Enabled": true
+		},
+		{
+			"Name": "CesiumForUnreal",
+			"Enabled": true
+		},
+		{
+			"Name": "SunPosition",
 			"Enabled": true
 		}
 	]

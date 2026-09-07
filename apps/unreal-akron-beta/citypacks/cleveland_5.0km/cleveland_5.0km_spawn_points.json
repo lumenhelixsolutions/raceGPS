@@ -1,0 +1,30 @@
+[
+  {
+    "id": "spawn_cleveland_5.0km_cruise_sprint_001",
+    "lat": 41.4959593,
+    "lon": -81.6822413,
+    "heading": 0,
+    "route_id": "cleveland_5.0km_cruise_sprint_001"
+  },
+  {
+    "id": "spawn_cleveland_5.0km_time_trial_001",
+    "lat": 41.482979,
+    "lon": -81.6947701,
+    "heading": 0,
+    "route_id": "cleveland_5.0km_time_trial_001"
+  },
+  {
+    "id": "spawn_cleveland_5.0km_circuit_001",
+    "lat": 41.4697272,
+    "lon": -81.6967973,
+    "heading": 0,
+    "route_id": "cleveland_5.0km_circuit_001"
+  },
+  {
+    "id": "spawn_cleveland_5.0km_drift_run_001",
+    "lat": 41.4678541,
+    "lon": -81.6675673,
+    "heading": 0,
+    "route_id": "cleveland_5.0km_drift_run_001"
+  }
+]

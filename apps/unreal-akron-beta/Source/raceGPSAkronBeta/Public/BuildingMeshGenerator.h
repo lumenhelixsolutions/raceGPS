@@ -70,6 +70,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Buildings")
     int32 GetGeneratedCount() const { return GeneratedCount; }
 
+    /** World-space box tower used by Cleveland Karla silhouette (named landmarks). */
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Buildings")
+    int32 AddWorldBoxBuilding(const FString& Name, const FString& Type, FVector Center, FVector2D HalfExtentsXY, float HeightCm, float YawDeg);
+
+    UFUNCTION(BlueprintCallable, Category = "raceGPS|Buildings")
+    UProceduralMeshComponent* GetBuildingMesh() const { return ProceduralMesh; }
+
 protected:
     virtual void Tick(float DeltaTime) override;
 

@@ -206,3 +206,34 @@ UMaterialInterface* ABuildingMeshGenerator::GetMaterialForType(const FString& Ty
         return MaterialBrick;
     return MaterialConcrete;
 }
+
+int32 ABuildingMeshGenerator::AddWorldBoxBuilding(const FString& Name, const FString& Type, FVector Center, FVector2D HalfExtentsXY, float HeightCm, float YawDeg)
+{
+    FBuildingData B;
+    B.Id = Name;
+    B.Name = Name;
+    B.Type = Type;
+    B.Height = HeightCm;
+    const float Rad = FMath::DegreesToRadians(YawDeg);
+    const float C = FMath::Cos(Rad);
+    const float S = FMath::Sin(Rad);
+    auto Corner = [&](float X, float Y) -> FVector2D
+    {
+        const float Rx = X * C - Y * S;
+        const float Ry = X * S + Y * C;
+        return FVector2D(Center.X + Rx, Center.Y + Ry);
+    };
+    B.Footprint.Add(Corner(-HalfExtentsXY.X, -HalfExtentsXY.Y));
+    B.Footprint.Add(Corner( HalfExtentsXY.X, -HalfExtentsXY.Y));
+    B.Footprint.Add(Corner( HalfExtentsXY.X,  HalfExtentsXY.Y));
+    B.Footprint.Add(Corner(-HalfExtentsXY.X,  HalfExtentsXY.Y));
+    Buildings.Add(B);
+    const int32 Section = Buildings.Num() - 1;
+    CreateBuildingMesh(B, Section);
+    if (ProceduralMesh)
+    {
+        ProceduralMesh->SetCachedMaxDrawDistance(MaxDrawDistance);
+    }
+    ++GeneratedCount;
+    return Section;
+}

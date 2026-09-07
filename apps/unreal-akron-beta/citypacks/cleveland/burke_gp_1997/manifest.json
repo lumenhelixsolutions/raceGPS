@@ -1,0 +1,16 @@
+{
+  "id": "cleveland_burke_gp_1997",
+  "display_name": "Cleveland Historic Circuit",
+  "engine": "UE5",
+  "xodr": "cleveland_burke_gp.xodr",
+  "racing_line": "racing_line.json",
+  "checkpoints": "checkpoints.json",
+  "metadata": "metadata.json",
+  "offline": true,
+  "carla_required": false,
+  "cesium_required": false,
+  "environment": "environment.json",
+  "water": "water.json",
+  "skyline": "skyline.json",
+  "track_dressing": "track_dressing.json"
+}

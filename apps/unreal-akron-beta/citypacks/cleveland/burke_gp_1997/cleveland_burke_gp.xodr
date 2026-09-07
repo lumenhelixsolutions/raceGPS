@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="4" name="cleveland_burke_gp_1997" version="1.0"
+          north="41.53518622" south="41.49925378"
+          east="-81.65906525" west="-81.70705475"
+          vendor="raceGPS">
+    <geoReference><![CDATA[+proj=tmerc +lat_0=41.51722 +lon_0=-81.68306 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs]]></geoReference>
+  </header>
+  <!-- Closed clockwise airport circuit. Reference line = centerline. Elevation flat 174.0 m AMSL. -->
+  <road name="Cleveland Historic Circuit" length="3280.2774" id="1" junction="-1">
+    <link>
+      <predecessor elementType="road" elementId="1" contactPoint="end"/>
+      <successor elementType="road" elementId="1" contactPoint="start"/>
+    </link>
+    <planView>
+      <geometry s="0.0000" x="122.7437" y="-51.6425" hdg="-2.580214" length="62.4827">
+        <line/>
+      </geometry>
+      <geometry s="62.4827" x="69.8507" y="-84.9054" hdg="-2.752109" length="784.7862">
+        <line/>
+      </geometry>
+      <geometry s="847.2689" x="-656.1592" y="-382.8969" hdg="-2.752109" length="66.3729">
+        <arc curvature="-0.031250"/>
+      </geometry>
+      <geometry s="913.6418" x="-700.1027" y="-349.6575" hdg="1.456924" length="23.3846">
+        <line/>
+      </geometry>
+      <geometry s="937.0264" x="-697.4456" y="-326.4244" hdg="1.456924" length="57.3116">
+        <arc curvature="-0.027778"/>
+      </geometry>
+      <geometry s="994.3380" x="-656.8312" y="-294.8428" hdg="-0.135065" length="20.4934">
+        <line/>
+      </geometry>
+      <geometry s="1014.8314" x="-636.5244" y="-297.6023" hdg="-0.135065" length="42.0366">
+        <arc curvature="0.027778"/>
+      </geometry>
+      <geometry s="1056.8680" x="-600.7657" y="-280.3828" hdg="1.032618" length="50.8145">
+        <line/>
+      </geometry>
+      <geometry s="1107.6825" x="-574.7196" y="-236.7513" hdg="1.032618" length="17.9087">
+        <arc curvature="-0.026316"/>
+      </geometry>
+      <geometry s="1125.5912" x="-562.3192" y="-224.0603" hdg="0.561336" length="1267.3374">
+        <line/>
+      </geometry>
+      <geometry s="2392.9285" x="510.5384" y="450.5660" hdg="0.561336" length="37.6374">
+        <arc curvature="-0.029412"/>
+      </geometry>
+      <geometry s="2430.5659" x="546.2822" y="450.8464" hdg="-0.545646" length="85.9959">
+        <line/>
+      </geometry>
+      <geometry s="2516.5618" x="619.7908" y="406.2171" hdg="-0.545646" length="30.0764">
+        <arc curvature="-0.027778"/>
+      </geometry>
+      <geometry s="2546.6383" x="636.4621" y="382.2327" hdg="-1.381102" length="78.8811">
+        <line/>
+      </geometry>
+      <geometry s="2625.5194" x="651.3358" y="304.7665" hdg="-1.381102" length="38.6258">
+        <arc curvature="-0.029412"/>
+      </geometry>
+      <geometry s="2664.1452" x="637.8235" y="270.7716" hdg="-2.517156" length="71.7196">
+        <line/>
+      </geometry>
+      <geometry s="2735.8649" x="579.6378" y="228.8414" hdg="-2.517156" length="4.6448">
+        <arc curvature="-0.031250"/>
+      </geometry>
+      <geometry s="2740.5097" x="575.6860" y="226.4084" hdg="-2.662307" length="452.6787">
+        <line/>
+      </geometry>
+      <geometry s="3193.1884" x="174.0132" y="17.6576" hdg="3.620879" length="14.9849">
+        <arc curvature="0.035714"/>
+      </geometry>
+      <geometry s="3208.1732" x="163.1478" y="7.5987" hdg="-2.127133" length="58.5118">
+        <line/>
+      </geometry>
+      <geometry s="3266.6850" x="132.2489" y="-42.0892" hdg="-2.127133" length="13.5924">
+        <arc curvature="-0.033333"/>
+      </geometry>
+    </planView>
+    <elevationProfile>
+      <elevation s="0.0" a="174.000" b="0" c="0" d="0"/>
+    </elevationProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <left>
+          <lane id="2" type="border" level="false"><link/><width sOffset="0" a="5.0" b="0" c="0" d="0"/></lane>
+          <lane id="1" type="driving" level="false"><link/><width sOffset="0" a="6.0" b="0" c="0" d="0"/></lane>
+        </left>
+        <center>
+          <lane id="0" type="none" level="true"><link/></lane>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false"><link/><width sOffset="0" a="6.0" b="0" c="0" d="0"/></lane>
+          <lane id="-2" type="border" level="false"><link/><width sOffset="0" a="5.0" b="0" c="0" d="0"/></lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>

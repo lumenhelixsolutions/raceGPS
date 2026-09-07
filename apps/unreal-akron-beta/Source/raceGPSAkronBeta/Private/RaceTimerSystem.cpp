@@ -32,6 +32,10 @@ void URaceTimerSystem::EndRace()
 
 void URaceTimerSystem::StartLap()
 {
+    if (bLapActive)
+    {
+        return;
+    }
     if (!bRaceActive)
     {
         StartRace();

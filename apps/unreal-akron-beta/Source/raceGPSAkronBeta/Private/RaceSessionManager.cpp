@@ -183,9 +183,9 @@ void URaceSessionManager::TickSession(float DeltaTime)
     else if (CurrentState == ERaceSessionState::Racing)
     {
         ElapsedTime += DeltaTime;
-        if (RaceTimer)
+        if (RaceTimer && !RaceTimer->IsLapActive())
         {
-            RaceTimer->StartLap(); // Continuous lap timing handled internally
+            RaceTimer->StartLap();
         }
     }
 }

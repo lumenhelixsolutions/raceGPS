@@ -1,0 +1,112 @@
+{
+  "id": "cleveland_burke_gp_1997_environment",
+  "offline": true,
+  "cesium_required": false,
+  "carla_required": false,
+  "geo": {
+    "frame": "wgs84",
+    "origin": {
+      "lat": 41.51722,
+      "lon": -81.68306
+    },
+    "world": "Z-up, 1uu=1cm, X=east, Y=north (URacingLineComponent::GeoToWorld)"
+  },
+  "lighting": {
+    "actor": "ADayNightCycle",
+    "spawn_if_missing": true,
+    "time_local": "14:00",
+    "notes": "Day demo / noon-afternoon. Actor already exists in the module; environment only spawns if none is in the world."
+  },
+  "materials": {
+    "provider": "URaceGPSMaterialProvider",
+    "slots": [
+      "Water_Surface",
+      "Vegetation_Grass",
+      "Road_Asphalt",
+      "Road_Marking",
+      "Building_Concrete",
+      "Building_Glass"
+    ]
+  },
+  "layers": [
+    {
+      "id": "water",
+      "file": "water.json",
+      "material": "Water_Surface",
+      "draw": "near_and_far"
+    },
+    {
+      "id": "infield_grass",
+      "file": "track_dressing.json#infield_grass",
+      "material": "Vegetation_Grass",
+      "draw": "near"
+    },
+    {
+      "id": "runway",
+      "file": "track_dressing.json#runway_regions",
+      "material": "Road_Asphalt",
+      "draw": "near"
+    },
+    {
+      "id": "taxiway",
+      "file": "track_dressing.json#taxiway_regions",
+      "material": "Road_Asphalt",
+      "draw": "near"
+    },
+    {
+      "id": "taxiway_markings",
+      "file": "track_dressing.json#taxiway_markings",
+      "material": "Road_Marking",
+      "draw": "near"
+    },
+    {
+      "id": "barriers",
+      "file": "track_dressing.json#barriers",
+      "draw": "near"
+    },
+    {
+      "id": "cones",
+      "file": "track_dressing.json#cones",
+      "draw": "near"
+    },
+    {
+      "id": "start_finish",
+      "file": "track_dressing.json#start_finish",
+      "material": "Road_Marking",
+      "draw": "near"
+    },
+    {
+      "id": "grid_slots",
+      "file": "track_dressing.json#grid_slots",
+      "draw": "near"
+    },
+    {
+      "id": "pit_visual",
+      "file": "track_dressing.json#pit_visual",
+      "draw": "near"
+    },
+    {
+      "id": "airport_boxes",
+      "file": "track_dressing.json#airport_boxes",
+      "material": "Building_Concrete",
+      "draw": "near"
+    },
+    {
+      "id": "skyline",
+      "file": "skyline.json",
+      "draw": "far"
+    },
+    {
+      "id": "horizon",
+      "procedural": "atmospheric_fog_on_ADayNightCycle",
+      "draw": "far"
+    }
+  ],
+  "non_goals": [
+    "No downtown interiors or storefronts.",
+    "No Cesium / 3D Tiles.",
+    "No CARLA.",
+    "No AStreetFurnitureSpawner city-intersection barriers.",
+    "No 811-pond hydro dump from a 5 km pack."
+  ]
+}

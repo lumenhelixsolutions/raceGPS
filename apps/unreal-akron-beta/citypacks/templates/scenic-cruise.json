@@ -1,0 +1,15 @@
+{
+  "id": "scenic-cruise",
+  "name": "Scenic Cruise",
+  "mode": "explore",
+  "poiFilters": [
+    "park",
+    "natural_feature",
+    "tourist_attraction"
+  ],
+  "objectSet": [
+    "tourist_stamp",
+    "photo_spot",
+    "gps_coin"
+  ]
+}

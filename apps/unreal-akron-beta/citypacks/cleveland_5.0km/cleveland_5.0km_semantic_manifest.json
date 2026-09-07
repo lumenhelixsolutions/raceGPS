@@ -1,0 +1,41 @@
+{
+  "city_id": "cleveland_5.0km",
+  "name": "Cleveland 5.0Km",
+  "version": "2.0.0",
+  "bounds": {
+    "south": 41.377114486486484,
+    "north": 41.617949513513516,
+    "west": -81.89256836762486,
+    "east": -81.51926933237513
+  },
+  "origin": {
+    "lat": 41.497532,
+    "lon": -81.70591884999999
+  },
+  "road_count": 57488,
+  "intersection_count": 72974,
+  "route_count": 4,
+  "spawn_point_count": 4,
+  "poi_count": 6506,
+  "building_count": 119611,
+  "water_count": 1263,
+  "vegetation_zone_count": 0,
+  "has_heightmap": true,
+  "biome": "temperate_lowland",
+  "files": {
+    "routes": "cleveland_5.0km_routes.json",
+    "pois": "cleveland_5.0km_pois.json",
+    "buildings": "cleveland_5.0km_buildings.json",
+    "spawn_points": "cleveland_5.0km_spawn_points.json",
+    "road_graph": "cleveland_5.0km_road_graph.json",
+    "water": "cleveland_5.0km_water.json",
+    "heightmap": "cleveland_5.0km_heightmap.json",
+    "biome": "cleveland_5.0km_biome.json"
+  },
+  "generated_by": "universal-city-compiler-v2",
+  "generated_at": "2026-08-15T04:16:03.271828+00:00",
+  "query": "Cleveland, OH",
+  "display_name": "Cleveland, Cuyahoga County, Ohio, United States",
+  "radius_km": 5.0,
+  "detail": "standard"
+}

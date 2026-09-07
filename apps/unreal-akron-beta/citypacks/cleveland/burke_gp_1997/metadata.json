@@ -1,0 +1,71 @@
+{
+  "identifier": "cleveland_burke_gp_1997",
+  "display_name": "Cleveland Historic Circuit",
+  "years": "1997-2007",
+  "layout_family": "1990-2007 (remeasured 1997)",
+  "official_length_mi": 2.106,
+  "official_length_m": 3389,
+  "measured_length_m": 3275.82,
+  "measured_length_delta_pct": -3.34,
+  "turns": 10,
+  "direction": "clockwise",
+  "surface": "concrete",
+  "airport": "Burke Lakefront",
+  "airport_code": "BKL",
+  "address": "1501 N Marginal Rd, Cleveland, OH",
+  "lat": 41.51722,
+  "lon": -81.68306,
+  "elevation_m_amsl": 174.0,
+  "series": "Champ Car / CART",
+  "branding_guardrail": "Product title is raceGPS: Cleveland Historic Circuit. Do not use event title-sponsor names in UI, HUD, or pack display_name. This citypack is not affiliated with any historical race sponsor.",
+  "layout_notes": "1997\u20132007 configuration: official 2.106 mi / 10 turns / clockwise / flat airport circuit. 1990 permanently bypassed the bumpy 1982 T1/T2 left-right; the main straight was extended to old T3, which became T1 (the vortex). 1997 remeasured the same geometry to 2.106 mi. Pit lane is the old 1982 T1/T2 segment (extended pit exit) \u2014 modeled as metadata only, not a separate XODR road. Do not represent this pack as the 1982 ~2.48 mi layout.",
+  "pit_lane": {
+    "modeled_in_xodr": false,
+    "notes": "Old 1982 T1/T2 left-right after the pits became the extended pit exit in 1990 (Wikipedia, gdecarli). Visual/metadata only."
+  },
+  "sources": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Grand_Prix_of_Cleveland",
+      "title": "Grand Prix of Cleveland (Wikipedia)"
+    },
+    {
+      "url": "https://gdecarli.it/php2/circuit.php?var1=788&var2=2",
+      "title": "TRACKS: CLEVELAND, BURKE LAKEFRONT (Guido de Carli)"
+    },
+    {
+      "url": "https://www.motorsportmagazine.com/database/circuits/cleveland/",
+      "title": "Cleveland \u2014 Motor Sport Magazine circuit database"
+    },
+    {
+      "url": "http://www.champcarstats.com/tracks/cleveland.htm",
+      "title": "Burke Lakefront Airport \u2014 ChampCarStats"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/File:Cleveland_Street_Course_at_Burke_Lakefront_Airport.svg",
+      "title": "Cleveland Street Course at Burke Lakefront Airport.svg (Will Pittenger, CC BY-SA 3.0)"
+    },
+    {
+      "url": "https://historseye.wordpress.com/2020/07/23/the-greatest-races-1995-grand-prix-of-cleveland/",
+      "title": "Histor's Eye: 1995 Grand Prix of Cleveland (T1 / T3-T4 / T9-T10)"
+    },
+    {
+      "url": "https://www.airnav.com/airport/KBKL",
+      "title": "AirNav: KBKL runway endpoints"
+    },
+    {
+      "url": "https://www.openstreetmap.org/",
+      "title": "OpenStreetMap aeroway=runway/taxiway at BKL (ODbL, Overpass 2026-08-22)"
+    }
+  ],
+  "assumptions": [
+    "No official surveyed racing-line polyline was available; centerline is reconstructed from OSM BKL runways 06L/24R and 06R/24L plus taxiways A, E, F, G to match published 1990\u20132007 diagrams (Wikipedia/Pittenger SVG, gdecarli 1990+ map notes).",
+    "Clockwise: start/finish on Taxiway G heading ~238\u00b0 true (SW) toward the 06 ends, matching a right-hand T1 hairpin onto 06L/24R heading ~058\u00b0.",
+    "T1 vortex uses Taxiway A pavement at the SW end (old T3). The 1982 left-right on/near 06R is not driven.",
+    "East complex leaves 06L near taxiway E rather than the full 24R threshold so measured length tracks the 1997 official 3389 m (a full-runway outer trace is ~3.8 km, matching the later-corrected 1990\u201396 published figure).",
+    "T3/T4 is a right-left after joining 06L; T9/T10 is a right-left chicane on G before S/F (Histor's Eye).",
+    "Driving lane total ~12 m in XODR (6 m each side of centerline) even though runways are 30\u201346 m wide; airport width is used as a usable lane, not the full FAA width.",
+    "Elevation locked flat at 174 m AMSL (gdecarli); FAA field elevation is 583.5 ft (~178 m).",
+    "Pit lane is metadata only (not a second OpenDRIVE road).",
+    "Curvature sign: positive = left. Target speeds are a control envelope, not historical lap data."
+  ]
+}

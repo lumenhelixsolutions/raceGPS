@@ -33,6 +33,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
     TSoftObjectPtr<class UTextureCube> HDRIEnvironmentMap;
 
+    /** Floor directional intensity after sunset so Midnight Run is not a black void. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
+    float NightMoonIntensity = 2.15f;
+
+    /** When true, night keeps a high moon directional (sun-below-horizon would unlit the world). */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "raceGPS|Atmosphere")
+    bool bMoonAtNight = true;
+
     UFUNCTION(BlueprintCallable, Category = "raceGPS|Time")
     void SetTimeOfDay(float Hour);
 

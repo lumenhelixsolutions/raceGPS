@@ -180,9 +180,23 @@ FPostProcessSettings APostProcessController::BuildSettings(const FPostProcessPre
     S.bOverride_ColorGamma = true;
     S.ColorGamma = FVector4(Preset.Gamma, Preset.Gamma, Preset.Gamma, 1.0f);
 
-    // Auto Exposure
+    // Auto Exposure: histogram + luminance floor so a dark first frame cannot pin black.
+    S.bOverride_AutoExposureMethod = true;
+    S.AutoExposureMethod = AEM_Histogram;
     S.bOverride_AutoExposureBias = true;
     S.AutoExposureBias = Preset.AutoExposureBias;
+    S.bOverride_AutoExposureMinBrightness = true;
+    S.AutoExposureMinBrightness = Preset.AutoExposureMinBrightness;
+    S.bOverride_AutoExposureMaxBrightness = true;
+    S.AutoExposureMaxBrightness = 4.0f;
+    S.bOverride_AutoExposureLowPercent = true;
+    S.AutoExposureLowPercent = 10.0f;
+    S.bOverride_AutoExposureHighPercent = true;
+    S.AutoExposureHighPercent = 90.0f;
+
+    // Scene color tint (MidnightRun cool moonlight / SunnyDay warm sun)
+    S.bOverride_SceneColorTint = true;
+    S.SceneColorTint = FLinearColor(Preset.SceneColorTintR, Preset.SceneColorTintG, Preset.SceneColorTintB);
 
     // Color LUT
     if (Preset.ColorLUT.IsValid())

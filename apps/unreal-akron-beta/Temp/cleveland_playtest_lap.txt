@@ -1,0 +1,39 @@
+outcome=PARTIAL_SPEED_OK_CHECKPOINT_SEEN_NO_ENDRACE
+EndRace=NO
+peak_speed_kmh=61.3 (this run); prior fix session also peaked ~75–84
+saw_speed_gt_10=YES
+CHECKPOINTs_this_run=0 (editor exited ~23s after Racing)
+CHECKPOINTs_earlier_fix_sessions=YES (CP1 at t=135s; another run CP1–4)
+GlobalDefaultGameMode=CruiseSprintGameMode (unchanged)
+png=C:\Users\cgp22\AppData\Local\Temp\cleveland_playtest_lap.png
+staged_png=YES
+
+## Root cause (dump evidence)
+Chaos SetupVehicle builds PVehicle from WheelClass CDOs. BP_DodgeCharger2024 shared wheel CDO left physics TorqueRatio/EngineEnabled such that DriveTorque stayed 0 despite full throttle and contact.
+
+Phase-1 dump (pre-fix, speed0_8s) RULED OUT tick-order / contact / throttle overwrite:
+  pawnThr=1.00 moveRawThr=1.00 moveProcThr=1.00 contact=4 tickPrereq=1/2 mech=1 reqCtrl=0
+  rpm=900 gear=1 fwd=0.0
+  wheelsDetail=... drvTq=0;drvTq=0;drvTq=0;drvTq=0
+
+Post-fix release dump:
+  contact=4 engOn=4 tq=1600 rpm=1001
+  wheelsDetail=... drvTq=-141; drvTq=-141; drvTq=-115; drvTq=-115
+  Racing ~3s later speed=17.8 then 61.3 km/h
+
+## Fix (minimal)
+- Distinct URaceGPSVehicleWheelFront/Rear CDOs (AxleType + bAffectedByEngine) assigned once to WheelSetups
+- One-shot RecreatePhysicsState after mech/curve (bAuthoredWheelsTorqueFixed) — no per-tick recreate
+- Enhanced DumpDriveState: moveRawThr/moveProcThr, contact, susp, drvTq, tickPrereq
+
+## Files edited (no commit/push)
+- apps/unreal-akron-beta/Source/raceGPSAkronBeta/Private/ChaosVehiclePawn.cpp
+- apps/unreal-akron-beta/Source/raceGPSAkronBeta/Public/ChaosVehiclePawn.h
+- apps/unreal-akron-beta/Source/raceGPSAkronBeta/Public/RaceGPSVehicleWheels.h (new)
+- apps/unreal-akron-beta/Source/raceGPSAkronBeta/Private/RaceGPSVehicleWheels.cpp (new)
+- Temp/cleveland_playtest_lap.txt + .png; staged png to %LOCALAPPDATA%\Temp\
+
+## Key dump lines
+PRE:  drive-dump speed0_8s ... moveRawThr=1.00 moveProcThr=1.00 contact=4 ... rpm=900 ... drvTq=0
+POST: drive-dump release ... drvTq=-141... speed rising; playtest speed=61.3
+CP:   CHECKPOINT 1/12 T1 Vortex (right hairpin) t=135.29 (earlier fix session)

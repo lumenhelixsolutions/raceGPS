@@ -1,0 +1,65 @@
+{
+  "id": "lake_erie_burke_nearfield",
+  "material": "Water_Surface",
+  "notes": "Single Lake Erie sheet NORTH of Burke Lakefront. South edge is racing_line max lat + ~220 m toward the lake (not OSM hydro dump). Do not treat this as a 5 km citypack pond inventory.",
+  "assumptions": [
+    "Circuit max sample lat is the north-runway 06L/24R racing line, not the FAA shoreline.",
+    "Real BKL shoreline sits a few hundred meters north of 06L; 220 m offset is a camera-scale approximation.",
+    "Outer (north) edge is a far-field clip ~1.8 km offshore for horizon fill, not a mapped isobath."
+  ],
+  "points": [
+    {
+      "lat": 41.522571,
+      "lon": -81.7022592
+    },
+    {
+      "lat": 41.523649,
+      "lon": -81.6644412
+    },
+    {
+      "lat": 41.5398186,
+      "lon": -81.6620417
+    },
+    {
+      "lat": 41.5387406,
+      "lon": -81.7046587
+    }
+  ],
+  "inner_shoreline": {
+    "name": "Burke lakefront shoreline (approx)",
+    "points": [
+      {
+        "lat": 41.522571,
+        "lon": -81.7022592
+      },
+      {
+        "lat": 41.522725,
+        "lon": -81.6968567
+      },
+      {
+        "lat": 41.522879,
+        "lon": -81.6914541
+      },
+      {
+        "lat": 41.523033,
+        "lon": -81.6860515
+      },
+      {
+        "lat": 41.523187,
+        "lon": -81.6806489
+      },
+      {
+        "lat": 41.523341,
+        "lon": -81.6752463
+      },
+      {
+        "lat": 41.523495,
+        "lon": -81.6698437
+      },
+      {
+        "lat": 41.523649,
+        "lon": -81.6644412
+      }
+    ]
+  }
+}

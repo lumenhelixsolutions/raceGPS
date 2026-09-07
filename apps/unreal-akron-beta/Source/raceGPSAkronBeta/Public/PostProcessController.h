@@ -46,6 +46,9 @@ struct FPostProcessPreset
     float AutoExposureBias = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PostProcess")
+    float AutoExposureMinBrightness = 0.08f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PostProcess")
     float SceneColorTintR = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PostProcess")
